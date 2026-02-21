@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.backend/db_connect.php
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+tmp/
+temp/
+
+# Build
+dist/
+build/
+
+# Local development
+local/
+*.pid
