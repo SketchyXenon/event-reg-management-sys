@@ -159,5 +159,13 @@ A restricted page accessible only to admins:
 | Creativity / Enhancements| Admin panel, slot limits, status tracking        |
 
 ---
+⚡ Powered By
+This Event Registration Management System is proudly powered by:
+
+PHP - Server-side scripting and business logic
+MySQL - Database management and data storage
+CSS - Styling and responsive design
+JavaScript - Interactive features and dynamic functionality
+XAMPP - Local development environment
 
 *Prepared for Midterm Group Project — Web Registration System*
