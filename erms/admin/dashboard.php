@@ -3,6 +3,7 @@ require_once __DIR__ . '/../backend/auth_guard.php';
 require_once __DIR__ . '/../backend/db_connect.php';
 admin_only();
 
+// ── Fetch real counts ──────────────────────────────────────
 $stats = [];
 
 $rows = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")->fetchColumn();
@@ -14,27 +15,26 @@ $stats['events'] = $rows ?: 0;
 $rows = $pdo->query("SELECT COUNT(*) FROM registrations")->fetchColumn();
 $stats['registrations'] = $rows ?: 0;
 
-$rows = $pdo->query("SELECT COUNT(*) FROM events WHERE status='active' AND event_date >= CURDATE()")->fetchColumn();
+$rows = $pdo->query("SELECT COUNT(*) FROM events WHERE status IN ('active','upcoming') AND date_time >= CURDATE()")->fetchColumn();
 $stats['upcoming'] = $rows ?: 0;
 
 // Recent registrations
 $recent = $pdo->query(
-  "SELECT r.id, u.full_name, u.student_id, e.title AS event_title,
+  "SELECT r.registration_id, u.full_name, u.student_id, e.title AS event_title,
           r.status, r.registered_at
    FROM registrations r
-   JOIN users u ON u.id = r.user_id
-   JOIN events e ON e.id = r.event_id
+   JOIN users u ON u.user_id = r.user_id
+   JOIN events e ON e.event_id = r.event_id
    ORDER BY r.registered_at DESC LIMIT 8"
 )->fetchAll(PDO::FETCH_ASSOC);
 
 // Events capacity usage
 $events_cap = $pdo->query(
-  "SELECT e.title, e.max_slots,
-          COUNT(r.id) AS enrolled,
-          e.status
+  "SELECT e.title, e.max_slots, e.status,
+          COUNT(r.registration_id) AS enrolled
    FROM events e
-   LEFT JOIN registrations r ON r.event_id = e.id AND r.status != 'cancelled'
-   GROUP BY e.id ORDER BY e.event_date ASC LIMIT 6"
+   LEFT JOIN registrations r ON r.event_id = e.event_id AND r.status != 'cancelled'
+   GROUP BY e.event_id ORDER BY e.date_time ASC LIMIT 6"
 )->fetchAll(PDO::FETCH_ASSOC);
 
 // Monthly registrations for mini chart (last 6 months)
@@ -50,16 +50,17 @@ $chart = $pdo->query(
 $admin = current_user();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin Dashboard — ERMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="../assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/admin.css">
 </head>
-<body>
+<body class="has-sidebar">
 
 <!-- ══ SIDEBAR ═════════════════════════════════════════════ -->
 <aside class="sidebar">
@@ -117,6 +118,7 @@ $admin = current_user();
     <div class="topbar-subtitle"><?= date('l, F j, Y') ?></div>
   </div>
   <div class="topbar-spacer"></div>
+    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme"><span id="themeIcon">☀️</span></button>
 </div>
 
 <!-- ══ MAIN ═════════════════════════════════════════════════ -->
@@ -182,7 +184,7 @@ $admin = current_user();
               </div>
             </div>
           <?php else: ?>
-            <p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0">No registration data yet.</p>
+            <p style="color:var(--text-3);font-size:0.85rem;text-align:center;padding:20px 0">No registration data yet.</p>
           <?php endif; ?>
         </div>
       </div>
@@ -207,7 +209,7 @@ $admin = current_user();
                 </li>
               <?php endforeach; ?>
             <?php else: ?>
-              <li class="activity-item"><div class="activity-text" style="color:var(--text-muted)">No recent activity.</div></li>
+              <li class="activity-item"><div class="activity-text" style="color:var(--text-3)">No recent activity.</div></li>
             <?php endif; ?>
           </ul>
         </div>
@@ -227,8 +229,8 @@ $admin = current_user();
           ?>
             <div style="margin-bottom:16px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:0.82rem;color:var(--text-primary)"><?= htmlspecialchars($ev['title']) ?></span>
-                <span style="font-size:0.75rem;color:var(--text-muted)"><?= $ev['enrolled'] ?>/<?= $ev['max_slots'] ?></span>
+                <span style="font-size:0.82rem;color:var(--text)"><?= htmlspecialchars($ev['title']) ?></span>
+                <span style="font-size:0.75rem;color:var(--text-3)"><?= $ev['enrolled'] ?>/<?= $ev['max_slots'] ?></span>
               </div>
               <div class="progress">
                 <div class="progress-bar <?= $pct>80?'gold':'' ?>" style="width:<?= $pct ?>%"></div>
@@ -236,7 +238,7 @@ $admin = current_user();
             </div>
           <?php endforeach; ?>
           <?php if (empty($events_cap)): ?>
-            <p style="color:var(--text-muted);font-size:0.85rem">No events created yet.</p>
+            <p style="color:var(--text-3);font-size:0.85rem">No events created yet.</p>
           <?php endif; ?>
         </div>
       </div>
@@ -268,7 +270,7 @@ $admin = current_user();
                   </tr>
                 <?php endforeach; ?>
               <?php else: ?>
-                <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">No registrations yet.</td></tr>
+                <tr><td colspan="3" style="text-align:center;color:var(--text-3)">No registrations yet.</td></tr>
               <?php endif; ?>
             </tbody>
           </table>
@@ -280,5 +282,21 @@ $admin = current_user();
 </main>
 
 <script src="assets/js/admin.js"></script>
+<script>
+(function() {
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const saved = localStorage.getItem('erms-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('erms-theme', next);
+    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+  });
+})();
+</script>
 </body>
 </html>

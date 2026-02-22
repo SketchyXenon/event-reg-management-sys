@@ -7,7 +7,7 @@ $admin = current_user();
 $msg   = '';
 $msg_type = '';
 
-
+// ── Handle POST ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
   $action = $_POST['action'] ?? '';
@@ -15,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($action === 'update_role') {
     $uid  = (int)$_POST['user_id'];
     $role = in_array($_POST['role'], ['admin','student']) ? $_POST['role'] : 'student';
-    if ($uid !== (int)$admin['id']) {
-      $pdo->prepare("UPDATE users SET role=? WHERE id=?")->execute([$role, $uid]);
+    if ($uid !== (int)($_SESSION['user_id'] ?? 0)) {
+      $pdo->prepare("UPDATE users SET role=? WHERE registration_id=?")->execute([$role, $uid]);
       $msg = 'User role updated.';
       $msg_type = 'success';
     } else {
@@ -27,9 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($action === 'toggle_status') {
     $uid = (int)$_POST['user_id'];
-    if ($uid !== (int)$admin['id']) {
+    if ($uid !== (int)($_SESSION['user_id'] ?? 0)) {
       $pdo->prepare(
-        "UPDATE users SET is_active = NOT is_active WHERE id=?"
+        "UPDATE users SET is_active = NOT is_active WHERE registration_id=?"
       )->execute([$uid]);
       $msg = 'User status updated.';
       $msg_type = 'success';
@@ -41,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($action === 'delete') {
     $uid = (int)$_POST['user_id'];
-    if ($uid !== (int)$admin['id']) {
-      $pdo->prepare("DELETE FROM users WHERE id=?")->execute([$uid]);
+    if ($uid !== (int)($_SESSION['user_id'] ?? 0)) {
+      $pdo->prepare("DELETE FROM users WHERE registration_id=?")->execute([$uid]);
       $msg = 'User deleted.';
       $msg_type = 'success';
     } else {
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // ── Fetch users ────────────────────────────────────────────
 $filter = $_GET['role'] ?? 'all';
-$sql = "SELECT u.*, COUNT(r.id) AS reg_count
+$sql = "SELECT u.*, COUNT(r.registration_id) AS reg_count
         FROM users u
         LEFT JOIN registrations r ON r.user_id = u.id
         " . ($filter !== 'all' ? "WHERE u.role='" . ($filter==='admin'?'admin':'student') . "'" : '') . "
@@ -65,15 +65,16 @@ $total_admin   = $pdo->query("SELECT COUNT(*) FROM users WHERE role='admin'")->f
 $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")->fetchColumn();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Manage Users — ERMS Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="assets/css/admin.css">
 </head>
-<body>
+<body class="has-sidebar">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -221,7 +222,7 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
                         </button>
                       </form>
                       <!-- Delete -->
-                      <?php if ($u['id'] != $admin['id']): ?>
+                      <?php if ($u['id'] != $admin['user_id']): ?>
                         <form method="POST" style="display:inline">
                           <?= csrf_token_field() ?>
                           <input type="hidden" name="action" value="delete">
@@ -287,6 +288,22 @@ function openRoleModal(user) {
   openModal('roleModal');
 }
 filterTable('userSearch','usersTable');
+</script>
+<script>
+(function() {
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const saved = localStorage.getItem('erms-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('erms-theme', next);
+    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+  });
+})();
 </script>
 </body>
 </html>

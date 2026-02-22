@@ -1,68 +1,58 @@
-/* ============================================================
-   ERMS Admin Panel — Dark Academic Theme
-   ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 :root {
-  /* Core Palette */
-  --bg-deepest:    #080b10;
-  --bg-base:       #0f1117;
-  --bg-surface:    #161b27;
-  --bg-elevated:   #1e2535;
-  --bg-hover:      #252d40;
+  /* Colour aliases */
+  --accent-blue:    var(--blue);
+  --accent-blue-l:  var(--blue-l);
+  --accent-gold:    var(--gold);
+  --accent-gold-l:  var(--gold-l);
+  --accent-green:   var(--green);
+  --accent-red:     var(--red);
 
-  /* Borders */
-  --border-subtle: rgba(255,255,255,0.05);
-  --border-muted:  rgba(255,255,255,0.09);
-  --border-accent: rgba(74,122,181,0.35);
+  /* Background aliases */
+  --bg-deepest:     var(--bg-s);
+  --bg-base:        var(--bg);
+  --bg-surface:     var(--bg-panel);
+  --bg-elevated:    var(--bg-card);
 
-  /* Typography */
-  --text-primary:  #e8e6e0;
-  --text-secondary:#9ba3b5;
-  --text-muted:    #5c6478;
-  --text-inverse:  #080b10;
+  /* Border aliases */
+  --border-subtle:  var(--border);
+  --border-muted:   var(--border);
+  --border-accent:  var(--border-acc);
 
-  /* Accents */
-  --accent-blue:   #4a7ab5;
-  --accent-blue-l: #6a96cc;
-  --accent-gold:   #c9a84c;
-  --accent-gold-l: #dbbf6e;
-  --accent-red:    #c45c5c;
-  --accent-green:  #4e9b72;
+  /* Typography aliases */
+  --text-primary:   var(--text);
+  --text-secondary: var(--text-2);
+  --text-muted:     var(--text-3);
+  --text-inverse:   #080b10;
 
-  /* Sidebar */
-  --sidebar-w:     260px;
-  --topbar-h:      64px;
+  /* Font aliases */
+  --font-display:   var(--ff-d);
+  --font-body:      var(--ff-b);
+  --font-mono:      var(--ff-m);
 
-  /* Shadows */
-  --shadow-sm:     0 1px 4px rgba(0,0,0,0.4);
-  --shadow-md:     0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+  /* Layout aliases */
+  --topbar-h:       var(--nav-h);
 
-  /* Fonts */
-  --font-display:  'Playfair Display', Georgia, serif;
-  --font-body:     'Source Sans 3', sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
+  /* Shadow aliases */
+  --shadow-sm:      0 1px 4px rgba(0,0,0,0.4);
+  --shadow-md:      var(--shadow);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.6);
 
-  /* Radius */
+  /* Radius tokens (used throughout admin.css) */
   --r-sm: 4px;
   --r-md: 8px;
   --r-lg: 12px;
+
+  /* Sidebar/topbar bg used in light-theme overrides */
+  --sidebar-bg:     var(--bg-s);
+  --topbar-bg:      var(--nav-scrolled);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 15px; scroll-behavior: smooth; }
 
+/* Admin pages add a subtle grid overlay on top of the base body bg from global.css */
 body {
-  font-family: var(--font-body);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-  display: flex;
-  overflow-x: hidden;
-  /* Subtle grid pattern */
   background-image:
     linear-gradient(rgba(74,122,181,0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(74,122,181,0.025) 1px, transparent 1px);
@@ -846,4 +836,32 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .topbar-search { display: none; }
   .page-content { padding: 20px 16px; }
+}
+
+/* ============================================================
+   LIGHT / DARK THEME — admin-specific overrides
+   Core theme tokens come from global.css [data-theme] blocks.
+   These only handle admin-specific components.
+   ============================================================ */
+
+.topbar { background: var(--nav-scrolled); }
+
+[data-theme="light"] .sidebar        { background: var(--bg-s); border-right-color: var(--border); }
+[data-theme="light"] .sidebar-user   { background: var(--bg-hover); }
+[data-theme="light"] .topbar         { background: var(--nav-scrolled); border-bottom-color: var(--border); }
+[data-theme="light"] .stat-card,
+[data-theme="light"] .card           { background: var(--bg-panel); border-color: var(--border); }
+[data-theme="light"] thead th        { background: var(--bg-hover); }
+[data-theme="light"] tbody tr:hover td { background: var(--bg-hover); }
+[data-theme="light"] .modal          { background: var(--bg-panel); }
+[data-theme="light"] .form-control   { background: var(--bg-field); border-color: var(--border); color: var(--text); }
+[data-theme="light"] .nav-item.active { background: rgba(74,122,181,0.1); }
+[data-theme="light"] .topbar-btn,
+[data-theme="light"] .topbar-search  { background: var(--bg-hover); border-color: var(--border); }
+[data-theme="light"] .tabs           { background: var(--bg-hover); }
+[data-theme="light"] .tab.active     { background: var(--bg-panel); }
+
+/* Theme transitions */
+body, .sidebar, .topbar, .stat-card, .card, .modal, .form-control, .nav-item {
+  transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease;
 }

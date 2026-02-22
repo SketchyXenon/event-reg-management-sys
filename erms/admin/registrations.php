@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reg_id = (int)$_POST['reg_id'];
     $status = in_array($_POST['status'], ['confirmed','pending','cancelled'])
               ? $_POST['status'] : 'pending';
-    $pdo->prepare("UPDATE registrations SET status=? WHERE id=?")->execute([$status, $reg_id]);
+    $pdo->prepare("UPDATE registrations SET status=? WHERE event_id=?")->execute([$status, $reg_id]);
     $msg = 'Registration status updated.';
     $msg_type = 'success';
   }
 
   if ($action === 'delete') {
     $reg_id = (int)$_POST['reg_id'];
-    $pdo->prepare("DELETE FROM registrations WHERE id=?")->execute([$reg_id]);
+    $pdo->prepare("DELETE FROM registrations WHERE event_id=?")->execute([$reg_id]);
     $msg = 'Registration removed.';
     $msg_type = 'success';
   }
@@ -48,12 +48,12 @@ if ($event_filter > 0) {
 $where_sql = $where ? "WHERE " . implode(" AND ", $where) : '';
 
 $registrations = $pdo->prepare(
-  "SELECT r.id, r.status, r.registered_at,
+  "SELECT r.registration_id, r.status, r.registered_at,
           u.full_name, u.student_id, u.email,
-          e.title AS event_title, e.event_date, e.location
+          e.title AS event_title, e.date_time, e.venue
    FROM registrations r
-   JOIN users u ON u.id = r.user_id
-   JOIN events e ON e.id = r.event_id
+   JOIN users u ON u.user_id = r.user_id
+   JOIN events e ON e.event_id = r.event_id
    $where_sql
    ORDER BY r.registered_at DESC"
 );
@@ -66,18 +66,19 @@ $reg_stats = $pdo->query(
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $total = array_sum($reg_stats);
-$events_list = $pdo->query("SELECT id, title FROM events ORDER BY event_date DESC")->fetchAll(PDO::FETCH_ASSOC);
+$events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Registrations — ERMS Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="assets/css/admin.css">
 </head>
-<body>
+<body class="has-sidebar">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -177,7 +178,7 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY event_date DES
         <select name="event_id" class="form-control" style="width:220px;padding:7px 12px;font-size:0.82rem" onchange="this.form.submit()">
           <option value="0">— All Events —</option>
           <?php foreach ($events_list as $ev): ?>
-            <option value="<?= $ev['id'] ?>" <?= $event_filter==$ev['id']?'selected':'' ?>>
+            <option value="<?= $ev['event_id'] ?>" <?= $event_filter==$ev['event_id']?'selected':'' ?>>
               <?= htmlspecialchars($ev['title']) ?>
             </option>
           <?php endforeach; ?>
@@ -204,14 +205,14 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY event_date DES
             <?php if (!empty($registrations)): ?>
               <?php foreach ($registrations as $r): ?>
                 <tr>
-                  <td class="td-mono"><?= $r['id'] ?></td>
+                  <td class="td-mono"><?= $r['registration_id'] ?></td>
                   <td>
                     <div class="td-primary"><?= htmlspecialchars($r['full_name']) ?></div>
                     <div style="font-size:0.75rem;color:var(--text-muted)"><?= htmlspecialchars($r['email']) ?></div>
                   </td>
                   <td class="td-mono"><?= htmlspecialchars($r['student_id']) ?></td>
                   <td class="td-primary"><?= htmlspecialchars($r['event_title']) ?></td>
-                  <td><?= date('M d, Y', strtotime($r['event_date'])) ?></td>
+                  <td><?= date('M d, Y', strtotime($r['date_time'])) ?></td>
                   <td><?= date('M d, Y g:i A', strtotime($r['registered_at'])) ?></td>
                   <td><span class="badge badge-<?= $r['status'] ?>"><?= ucfirst($r['status']) ?></span></td>
                   <td>
@@ -223,7 +224,7 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY event_date DES
                       <form method="POST" style="display:inline">
                         <?= csrf_token_field() ?>
                         <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="reg_id" value="<?= $r['id'] ?>">
+                        <input type="hidden" name="reg_id" value="<?= $r['registration_id'] ?>">
                         <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Remove"
                           data-confirm="Remove this registration?">
                           <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -288,6 +289,22 @@ function openStatusModal(reg) {
   openModal('statusModal');
 }
 filterTable('regSearch','regTable');
+</script>
+<script>
+(function() {
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const saved = localStorage.getItem('erms-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('erms-theme', next);
+    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+  });
+})();
 </script>
 </body>
 </html>

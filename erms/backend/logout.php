@@ -1,21 +1,18 @@
 <?php
 // ============================================================
-//  logout.php
-//  Safely destroys the user session and redirects to login
-//  Event Registration Management System
+//  logout.php  —  lives in /backend/
+//  Destroys session and redirects to root login page
 // ============================================================
 
 session_start();
 
-// ── 1. Unset all session variables ────────────────────────────
 $_SESSION = [];
 
-// ── 2. Destroy the session cookie ─────────────────────────────
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(
         session_name(), '',
-        time() - 42000,             
+        time() - 42000,
         $params["path"],
         $params["domain"],
         $params["secure"],
@@ -23,9 +20,7 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// ── 3. Destroy the session ─────────────────────────────────────
 session_destroy();
 
-// ── 4. Redirect to login page ──────────────────────────────────
-header("Location: login.php?logout=1");
+header("Location: ../login.php?logout=1");
 exit();

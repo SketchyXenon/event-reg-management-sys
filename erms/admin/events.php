@@ -15,30 +15,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($action === 'create' || $action === 'update') {
     $title       = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
-    $event_date  = $_POST['event_date'] ?? '';
-    $location    = trim($_POST['location'] ?? '');
+    $date_time  = $_POST['date_time'] ?? '';
+    $venue    = trim($_POST['venue'] ?? '');
     $max_slots   = (int)($_POST['max_slots'] ?? 50);
     $status      = $_POST['status'] ?? 'active';
     $category_id = $_POST['category_id'] ?: null;
 
-    if (!$title || !$event_date || !$location) {
+    if (!$title || !$date_time || !$venue) {
       $msg = 'Please fill in all required fields.';
       $msg_type = 'error';
     } else {
       if ($action === 'create') {
         $stmt = $pdo->prepare(
-          "INSERT INTO events (title, description, event_date, location, max_slots, status, category_id)
+          "INSERT INTO events (title, description, date_time, venue, max_slots, status, category_id)
            VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$title, $description, $event_date, $location, $max_slots, $status, $category_id]);
+        $stmt->execute([$title, $description, $date_time, $venue, $max_slots, $status, $category_id]);
         $msg = 'Event created successfully.';
       } else {
         $id = (int)$_POST['event_id'];
         $stmt = $pdo->prepare(
-          "UPDATE events SET title=?, description=?, event_date=?, location=?, max_slots=?, status=?, category_id=?
-           WHERE id=?"
+          "UPDATE events SET title=?, description=?, date_time=?, venue=?, max_slots=?, status=?, category_id=?
+           WHERE event_id=?"
         );
-        $stmt->execute([$title, $description, $event_date, $location, $max_slots, $status, $category_id, $id]);
+        $stmt->execute([$title, $description, $date_time, $venue, $max_slots, $status, $category_id, $event_id]);
         $msg = 'Event updated.';
       }
       $msg_type = 'success';
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($action === 'delete') {
     $id = (int)$_POST['event_id'];
-    $pdo->prepare("DELETE FROM events WHERE id=?")->execute([$id]);
+    $pdo->prepare("DELETE FROM events WHERE event_id=?")->execute([$event_id]);
     $msg = 'Event deleted.';
     $msg_type = 'success';
   }
@@ -55,26 +55,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // ── Fetch data ─────────────────────────────────────────────
 $events = $pdo->query(
-  "SELECT e.*, ec.name AS category_name,
-          COUNT(r.id) AS enrolled
+  "SELECT e.*, ec.category_name,
+          COUNT(r.registration_id) AS enrolled
    FROM events e
-   LEFT JOIN event_categories ec ON ec.id = e.category_id
-   LEFT JOIN registrations r ON r.event_id = e.id AND r.status != 'cancelled'
-   GROUP BY e.id ORDER BY e.event_date DESC"
+   LEFT JOIN event_categories ec ON ec.category_id = e.category_id
+   LEFT JOIN registrations r ON r.event_id = e.event_id AND r.status != 'cancelled'
+   GROUP BY e.event_id ORDER BY e.date_time DESC"
 )->fetchAll(PDO::FETCH_ASSOC);
 
-$categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+$categories = $pdo->query("SELECT * FROM event_categories ORDER BY category_name")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Manage Events — ERMS Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="assets/css/admin.css">
 </head>
-<body>
+<body class="has-sidebar">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -166,11 +167,11 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
             <?php if (!empty($events)): ?>
               <?php foreach ($events as $ev): ?>
                 <tr>
-                  <td class="td-mono"><?= $ev['id'] ?></td>
+                  <td class="td-mono"><?= $ev['event_id'] ?></td>
                   <td class="td-primary"><?= htmlspecialchars($ev['title']) ?></td>
                   <td><?= htmlspecialchars($ev['category_name'] ?? '—') ?></td>
-                  <td><?= date('M d, Y', strtotime($ev['event_date'])) ?></td>
-                  <td><?= htmlspecialchars($ev['location']) ?></td>
+                  <td><?= date('M d, Y', strtotime($ev['date_time'])) ?></td>
+                  <td><?= htmlspecialchars($ev['venue']) ?></td>
                   <td>
                     <?= $ev['enrolled'] ?>/<?= $ev['max_slots'] ?>
                     <?php if ($ev['enrolled'] >= $ev['max_slots']): ?>
@@ -192,7 +193,7 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
                       <form method="POST" style="display:inline">
                         <?= csrf_token_field() ?>
                         <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="event_id" value="<?= $ev['id'] ?>">
+                        <input type="hidden" name="event_id" value="<?= $ev['event_id'] ?>">
                         <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Delete"
                           data-confirm="Delete '<?= htmlspecialchars($ev['title'], ENT_QUOTES) ?>'? This cannot be undone.">
                           <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -203,7 +204,7 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
-              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No events yet. Create your first one!</td></tr>
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">No events yet. Create your first one!</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -231,21 +232,21 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Event Date *</label>
-            <input type="datetime-local" name="event_date" class="form-control" required>
+            <input type="datetime-local" name="date_time" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label">Category</label>
             <select name="category_id" class="form-control">
               <option value="">— No category —</option>
               <?php foreach ($categories as $cat): ?>
-                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Location *</label>
-          <input type="text" name="location" class="form-control" required placeholder="e.g. Main Auditorium">
+          <input type="text" name="venue" class="form-control" required placeholder="e.g. Main Auditorium">
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -293,21 +294,21 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Event Date *</label>
-            <input type="datetime-local" name="event_date" id="edit_event_date" class="form-control" required>
+            <input type="datetime-local" name="date_time" id="edit_date_time" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label">Category</label>
             <select name="category_id" id="edit_category_id" class="form-control">
               <option value="">— No category —</option>
               <?php foreach ($categories as $cat): ?>
-                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Location *</label>
-          <input type="text" name="location" id="edit_location" class="form-control" required>
+          <input type="text" name="venue" id="edit_venue" class="form-control" required>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -341,20 +342,36 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY name")->fetch
 function openEditModal(ev) {
   document.getElementById('edit_event_id').value   = ev.id;
   document.getElementById('edit_title').value       = ev.title;
-  document.getElementById('edit_location').value    = ev.location;
+  document.getElementById('edit_venue').value    = ev.venue;
   document.getElementById('edit_max_slots').value   = ev.max_slots;
   document.getElementById('edit_status').value      = ev.status;
   document.getElementById('edit_description').value = ev.description || '';
   document.getElementById('edit_category_id').value = ev.category_id || '';
   // Format datetime-local
-  const d = new Date(ev.event_date);
+  const d = new Date(ev.date_time);
   const pad = n => String(n).padStart(2,'0');
-  document.getElementById('edit_event_date').value =
+  document.getElementById('edit_date_time').value =
     `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   openModal('editModal');
 }
 
 filterTable('evtSearch','eventsTable');
+</script>
+<script>
+(function() {
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const saved = localStorage.getItem('erms-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('erms-theme', next);
+    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+  });
+})();
 </script>
 </body>
 </html>
