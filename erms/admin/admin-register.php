@@ -69,9 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Registration - CTU Danao ERMS</title>
+  <title>Admin Registration — ERMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="icon" href="/assets/img/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="../assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -79,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><span id="themeIcon">☀️</span></button>
 
-<div class="auth-wrap" style="display:flex;width:100%;min-height:100vh;">
+<div class="auth-wrap">
 
   <!-- Brand Panel -->
   <aside class="auth-brand">
@@ -163,10 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             </button>
           </div>
-          <div class="pw-strength">
-            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
-            <div class="strength-label" id="strengthLabel">Enter a password</div>
-          </div>
+          <div class="pw-strength"><div class="pw-strength-bar" id="strengthBar"></div></div>
+          <div class="input-hint" id="strengthLabel">Enter a password</div>
         </div>
 
         <div class="form-group">
@@ -195,64 +192,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 
+
+<script src="../assets/js/global.js"></script>
 <script>
-// Theme
-const html=document.documentElement,themeBtn=document.getElementById('themeToggle'),themeIcon=document.getElementById('themeIcon');
-const saved=localStorage.getItem('erms-theme')||'dark';
-html.setAttribute('data-theme',saved);
-themeIcon.textContent=saved==='dark'?'☀️':'🌙';
-themeBtn.addEventListener('click',()=>{
-  const next=html.getAttribute('data-theme')==='dark'?'light':'dark';
-  html.setAttribute('data-theme',next);
-  localStorage.setItem('erms-theme',next);
-  themeIcon.textContent=next==='dark'?'☀️':'🌙';
-});
+// ── Password strength (local — ensures it works regardless of global.js cache) ──
+(function () {
+  var pw    = document.getElementById('password');
+  var fill  = document.getElementById('strengthBar');
+  var label = document.getElementById('strengthLabel');
+  if (!pw || !fill || !label) return;
 
-// Password toggle
-function togglePw(id,btn){
-  const inp=document.getElementById(id);
-  inp.type=inp.type==='password'?'text':'password';
-}
-
-// Password strength
-document.getElementById('password').addEventListener('input',function(){
-  const v=this.value;
-  const fill=document.getElementById('strengthFill');
-  const label=document.getElementById('strengthLabel');
-  let score=0;
-  if(v.length>=8) score++;
-  if(/[A-Z]/.test(v)) score++;
-  if(/[0-9]/.test(v)) score++;
-  if(/[^A-Za-z0-9]/.test(v)) score++;
-  const levels=[
-    {w:'0%',bg:'transparent',txt:'Enter a password'},
-    {w:'25%',bg:'#c45c5c',txt:'Weak'},
-    {w:'50%',bg:'#c9a84c',txt:'Fair'},
-    {w:'75%',bg:'#4a7ab5',txt:'Good'},
-    {w:'100%',bg:'#4e9b72',txt:'Strong ✓'},
+  var levels = [
+    { w: '0%',   bg: '',        color: '',        txt: 'Enter a password' },
+    { w: '25%',  bg: '#c45c5c', color: '#c45c5c', txt: 'Weak'             },
+    { w: '50%',  bg: '#c9a84c', color: '#c9a84c', txt: 'Fair'             },
+    { w: '75%',  bg: '#6a96cc', color: '#6a96cc', txt: 'Good'             },
+    { w: '100%', bg: '#4e9b72', color: '#4e9b72', txt: 'Strong ✓'         },
   ];
-  const l=levels[score];
-  fill.style.width=l.w; fill.style.background=l.bg; label.textContent=l.txt;
-  checkMatch();
-});
 
-// Password match
-document.getElementById('confirm_password').addEventListener('input',checkMatch);
-function checkMatch(){
-  const p=document.getElementById('password').value;
-  const c=document.getElementById('confirm_password').value;
-  const hint=document.getElementById('matchHint');
-  if(!c){hint.textContent='';hint.className='hint';return;}
-  if(p===c){hint.textContent='✓ Passwords match';hint.className='hint ok';}
-  else{hint.textContent='✗ Passwords do not match';hint.className='hint err';}
-}
+  pw.addEventListener('input', function () {
+    var v = pw.value, score = 0;
+    if (v.length >= 8)           score++;
+    if (/[A-Z]/.test(v))        score++;
+    if (/[0-9]/.test(v))        score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    var l = v.length === 0 ? levels[0] : levels[score];
+    fill.style.width      = l.w;
+    fill.style.background = l.bg;
+    label.textContent     = l.txt;
+    label.style.color     = l.color || '#8e97ae';
+  });
 
-// Submit
-document.getElementById('regForm').addEventListener('submit',function(){
-  const btn=document.getElementById('submitBtn');
-  btn.disabled=true;
-  btn.textContent='Creating account…';
-});
+  // Confirm match
+  var confirm = document.getElementById('confirm_password');
+  var hint    = document.getElementById('matchHint');
+  if (confirm && hint) {
+    confirm.addEventListener('input', function () {
+      if (!confirm.value) { hint.textContent = ''; return; }
+      var match = confirm.value === pw.value;
+      hint.textContent = match ? '✓ Passwords match' : '✗ Passwords do not match';
+      hint.className   = match ? 'hint ok' : 'hint err';
+    });
+  }
+})();
 </script>
 </body>
 </html>

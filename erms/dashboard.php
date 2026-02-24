@@ -140,6 +140,13 @@ $first_name = explode(' ', $full_name)[0];
 
     <div class="nav-label" style="margin-top:8px">Account</div>
 
+    <a href="profile.php" class="nav-item">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      My Profile
+    </a>
+
     <a href="index.php" class="nav-item">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3"/>
@@ -367,36 +374,7 @@ $first_name = explode(' ', $full_name)[0];
   </div>
 </main>
 
-<script>
-// ── Theme toggle ──────────────────────────────────────────
-const html      = document.documentElement;
-const themeBtn  = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
 
-const saved = localStorage.getItem('erms-theme') || 'dark';
-html.setAttribute('data-theme', saved);
-themeIcon.textContent = saved === 'dark' ? '☀️' : '🌙';
-
-themeBtn.addEventListener('click', () => {
-  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('erms-theme', next);
-  themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
-});
-
-// ── Mobile menu ───────────────────────────────────────────
-if (window.innerWidth <= 768) {
-  document.getElementById('menuBtn').style.display = 'flex';
-}
-
-document.addEventListener('click', e => {
-  const sidebar = document.getElementById('sidebar');
-  if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
-    if (!sidebar.contains(e.target) && !e.target.closest('#menuBtn')) {
-      sidebar.classList.remove('open');
-    }
-  }
-});
-</script>
+<script src="assets/js/global.js"></script>
 </body>
 </html>

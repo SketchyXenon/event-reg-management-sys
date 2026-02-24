@@ -383,29 +383,9 @@ $registered_count = count(array_filter($all_events, fn($e) => $e['is_registered'
   </div>
 </div>
 
+
+<script src="assets/js/global.js"></script>
 <script>
-// ── Theme ─────────────────────────────────────────────────
-const html = document.documentElement;
-const themeBtn = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
-const saved = localStorage.getItem('erms-theme') || 'dark';
-html.setAttribute('data-theme', saved);
-themeIcon.textContent = saved === 'dark' ? '☀️' : '🌙';
-themeBtn.addEventListener('click', () => {
-  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('erms-theme', next);
-  themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
-});
-
-// ── Mobile sidebar ────────────────────────────────────────
-if (window.innerWidth <= 768) document.getElementById('menuBtn').style.display = 'flex';
-document.addEventListener('click', e => {
-  const sb = document.getElementById('sidebar');
-  if (window.innerWidth <= 768 && sb.classList.contains('open'))
-    if (!sb.contains(e.target) && !e.target.closest('#menuBtn')) sb.classList.remove('open');
-});
-
 // ── Search debounce ───────────────────────────────────────
 let searchTimer;
 document.getElementById('searchInput').addEventListener('input', function() {
@@ -413,19 +393,12 @@ document.getElementById('searchInput').addEventListener('input', function() {
   searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 500);
 });
 
-// ── Modals ────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
-});
-
+// ── Event detail modal ────────────────────────────────────
 function openDetail(ev) {
   document.getElementById('detail-title').textContent    = ev.title;
   document.getElementById('detail-sub').textContent      = ev.is_reg ? '✓ You are registered for this event' : '';
   document.getElementById('detail-date').textContent     = ev.date;
-  document.getElementById('detail-venue').textContent = ev.venue;
+  document.getElementById('detail-venue').textContent    = ev.venue;
   document.getElementById('detail-capacity').textContent = `${ev.enrolled} / ${ev.max_slots} registered (${ev.slots_left} slots left)`;
 
   const descRow = document.getElementById('detail-desc-row');
@@ -436,7 +409,6 @@ function openDetail(ev) {
     descRow.style.display = 'none';
   }
 
-  // Warning
   const warn = document.getElementById('detail-warning');
   if (ev.is_full && !ev.is_reg) {
     warn.innerHTML = '<div class="slots-warning full">⚠ This event is full. No slots remaining.</div>';
@@ -446,7 +418,6 @@ function openDetail(ev) {
     warn.innerHTML = '';
   }
 
-  // Footer buttons
   const footer = document.getElementById('detail-footer');
   if (ev.is_reg) {
     footer.innerHTML = `<button class="btn btn-success" disabled>✓ ${ev.my_status ? ev.my_status.charAt(0).toUpperCase()+ev.my_status.slice(1) : 'Registered'}</button>`;

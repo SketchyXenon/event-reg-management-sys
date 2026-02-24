@@ -16,12 +16,30 @@ $error_type   = '';
 $seconds_left = 0;
 $attempts_left = 0;
 
-if (isset($_GET['session'])) {
-    if ($_GET['session'] === 'timeout') { $error = 'Your session timed out. Please sign in again.';  $error_type = 'info'; }
-    if ($_GET['session'] === 'expired') { $error = 'Your session has expired. Please sign in again.'; $error_type = 'info'; }
+// ── Flash messages (one-time, cleared after read) ──────────
+if (isset($_SESSION['flash_success'])) {
+    $success = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
 }
-if (isset($_GET['logout'])) {
-    $success = 'You have been signed out successfully.';
+if (isset($_SESSION['flash_error'])) {
+    $error      = $_SESSION['flash_error'];
+    $error_type = $_SESSION['flash_error_type'] ?? 'info';
+    unset($_SESSION['flash_error'], $_SESSION['flash_error_type']);
+}
+
+// ── Legacy GET params → convert to flash then redirect ─────
+if (!$_POST && (isset($_GET['session']) || isset($_GET['logout']))) {
+    if (isset($_GET['session'])) {
+        if ($_GET['session'] === 'timeout') { $_SESSION['flash_error'] = 'Your session timed out. Please sign in again.';  $_SESSION['flash_error_type'] = 'info'; }
+        if ($_GET['session'] === 'expired') { $_SESSION['flash_error'] = 'Your session has expired. Please sign in again.'; $_SESSION['flash_error_type'] = 'info'; }
+    }
+    if (isset($_GET['logout'])) {
+        $_SESSION['flash_success'] = 'You have been signed out successfully.';
+    }
+    // Redirect to clean URL — removes params so refresh won't re-trigger
+    $mode = $_GET['mode'] ?? 'student';
+    header('Location: login.php' . ($mode !== 'student' ? '?mode=' . urlencode($mode) : ''));
+    exit;
 }
 
 $login_mode = $_POST['login_mode'] ?? $_GET['mode'] ?? 'student';
@@ -57,40 +75,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $seconds_left = $lock['seconds_left'] ?? 0;
 
             } elseif (!$user || !verify_password($password, $user['password'])) {
-                record_failed_attempt($email, $ip);
-                $recheck = $user ? is_account_locked($email) : ['locked' => false, 'seconds_left' => 0, 'message' => ''];
-
-                if ($recheck['locked']) {
-                    $error        = $recheck['message'];
-                    $error_type   = 'account_locked';
-                    $seconds_left = $recheck['seconds_left'] ?? 0;
+                if (!$user) {
+                    // Email not found — generic message, no attempt recording, no count leak
+                    $error      = 'Invalid email or password.';
+                    $error_type = 'invalid_credentials';
                 } else {
-                    if ($user) {
+                    // Email found but wrong password — record and warn
+                    record_failed_attempt($email, $ip);
+                    $recheck = is_account_locked($email);
+
+                    if ($recheck['locked']) {
+                        $error        = $recheck['message'];
+                        $error_type   = 'account_locked';
+                        $seconds_left = $recheck['seconds_left'] ?? 0;
+                    } else {
                         $ua = $pdo->prepare("SELECT failed_attempts FROM users WHERE email = ? LIMIT 1");
                         $ua->execute([$email]);
                         $ua_row = $ua->fetch(PDO::FETCH_ASSOC);
                         $done   = $ua_row ? (int)$ua_row['failed_attempts'] : 1;
-                    } else {
-                        $done = 1;
-                    }
-                    $max_attempts  = 5;
-                    $attempts_left = max(0, $max_attempts - $done);
 
-                    if ($attempts_left > 0) {
-                        $error = "Invalid email or password. "
-                               . $attempts_left . " attempt" . ($attempts_left === 1 ? '' : 's')
-                               . " remaining before your account is temporarily locked.";
-                    } else {
-                        $error = 'Invalid email or password.';
+                        $max_attempts  = 5;
+                        $attempts_left = max(0, $max_attempts - $done);
+
+                        if ($attempts_left > 0) {
+                            $error = "Invalid email or password. "
+                                   . $attempts_left . " attempt" . ($attempts_left === 1 ? '' : 's')
+                                   . " remaining before your account is temporarily locked.";
+                        } else {
+                            $error = 'Invalid email or password.';
+                        }
+                        $error_type = 'invalid_credentials';
                     }
-                    $error_type = 'invalid_credentials';
                 }
 
             } elseif (!$user['is_active']) {
                 $error      = 'Your account has been deactivated. Please contact the administrator.';
                 $error_type = 'inactive';
 
+            } elseif ($login_mode === 'student' && $user['role'] === 'admin') {
+                // Admin trying to log in through the Student tab
+                record_failed_attempt($email, $ip);
+                $error      = 'Administrator accounts must sign in through the Admin tab.';
+                $error_type = 'access_denied';
+
             } elseif ($login_mode === 'admin' && $user['role'] !== 'admin') {
+                // Student trying to log in through the Admin tab
                 record_failed_attempt($email, $ip);
                 $error      = 'Access denied. This account does not have administrator privileges.';
                 $error_type = 'access_denied';
@@ -118,7 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign In — ERMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="icon" href="/assets/img/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -133,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="brand-crest">E</div>
       <h2 class="brand-title" id="brandTitle">
         <?php if ($login_mode === 'admin'): ?>Administrator<br><em>Access Portal</em>
-        <?php else: ?>Welcome back to<br><em>CTU Danao ERMS</em><?php endif; ?>
+        <?php else: ?>Welcome back to<br><em>ERMS</em><?php endif; ?>
       </h2>
       <p class="brand-desc">Your academic event hub. Sign in to view your registered events, discover new opportunities, and manage your campus schedule.</p>
       <ul class="admin-perks">
@@ -190,10 +218,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="admin-notice <?= $login_mode==='admin'?'visible':'' ?>" id="adminNotice">
         <span class="admin-notice-icon">🛡️</span>
-        <div><strong>Administrator Portal</strong> — Full system access including user management, event control, and registration oversight.</div>
+        <div><strong>Administrator Portal</strong> — For admin accounts only. Student accounts cannot sign in here.</div>
       </div>
 
-  
+      <!-- ── Alerts ─────────────────────────────────────── -->
 
       <?php if ($error_type === 'rate_limit' || $error_type === 'account_locked'): ?>
         <div class="alert-lock">
@@ -202,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="lock-title">
               <?= $error_type === 'rate_limit' ? 'Too Many Attempts — IP Temporarily Blocked' : 'Account Temporarily Locked' ?>
             </div>
-            <div class="lock-msg"><?= htmlspecialchars($error) ?></div>
+            <div class="lock-msg"><?= htmlspecialchars(strip_tags($error)) ?></div>
             <?php if ($seconds_left > 0): ?>
               <div class="lock-timer">
                 <span class="timer-label">Try again in:</span>
@@ -294,37 +322,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="form-footer <?= $login_mode==='admin'?'hidden':'' ?>" id="formFooter">
         New to ERMS? <a href="register.php">Create your account →</a>
+        &nbsp;·&nbsp; <a href="forgot-password.php">Forgot password?</a>
       </div>
       <div class="form-footer" id="adminRegFooter" <?= $login_mode!=='admin'?'style="display:none"':'' ?>>
         No admin account yet? <a href="admin/admin-register.php">Register as Administrator →</a>
+        &nbsp;·&nbsp; <a href="forgot-password.php">Forgot password?</a>
       </div>
 
     </div>
   </div>
 </div>
 
+
+<script src="assets/js/global.js"></script>
 <script>
-// ── Theme ──────────────────────────────────────────────────
-const htmlEl = document.documentElement;
-const saved  = localStorage.getItem('erms-theme') || 'dark';
-htmlEl.setAttribute('data-theme', saved);
-document.getElementById('themeIcon').textContent = saved === 'dark' ? '☀️' : '🌙';
-document.getElementById('themeToggle').addEventListener('click', () => {
-  const next = htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  htmlEl.setAttribute('data-theme', next);
-  localStorage.setItem('erms-theme', next);
-  document.getElementById('themeIcon').textContent = next === 'dark' ? '☀️' : '🌙';
-});
-
-// ── Password toggle ────────────────────────────────────────
-document.getElementById('pwToggle').addEventListener('click', () => {
-  const inp = document.getElementById('password');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-});
-
 // ── Mode switcher ──────────────────────────────────────────
 function switchMode(mode) {
   const isAdmin = mode === 'admin';
+
+  // Clear any visible alerts when switching tabs
+  document.querySelectorAll('.alert, .alert-error, .alert-success, .alert-warning, .alert-info').forEach(el => el.remove());
+
   document.body.className = 'auth-layout mode-' + mode;
   document.getElementById('brandPanel').className = 'auth-brand mode-' + mode;
   document.getElementById('tabStudent').className  = 'mode-tab' + (isAdmin ? '' : ' active-student');
@@ -350,7 +368,7 @@ function switchMode(mode) {
     : '<p>"Education is not the filling of a pail, but the lighting of a fire."</p><cite>— W.B. Yeats</cite>';
 }
 
-// ── Countdown timer ────────────────────────────────────────
+// ── Countdown timer (rate limit / account lock) ────────────
 const cdEl  = document.getElementById('countdown');
 const barEl = document.getElementById('lockBar');
 if (cdEl) {
@@ -365,6 +383,13 @@ if (cdEl) {
       sb.disabled    = false;
       sb.className   = 'btn-submit ' + (mode === 'admin' ? 'admin-btn' : 'student-btn');
       sb.textContent = mode === 'admin' ? '🔐 Sign In as Administrator' : 'Sign In';
+      // Fade out and remove the lock alert
+      const target = document.querySelector('.alert-lock');
+      if (target) {
+        target.style.transition = 'opacity 0.5s ease';
+        target.style.opacity    = '0';
+        setTimeout(() => target.remove(), 500);
+      }
       return;
     }
     const m = String(Math.floor(secs / 60)).padStart(2, '0');

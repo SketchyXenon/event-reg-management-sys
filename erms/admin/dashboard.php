@@ -281,22 +281,7 @@ $admin = current_user();
   </div><!-- /page-content -->
 </main>
 
+<script src="../assets/js/global.js"></script>
 <script src="assets/js/admin.js"></script>
-<script>
-(function() {
-  const html = document.documentElement;
-  const btn  = document.getElementById('themeToggle');
-  const icon = document.getElementById('themeIcon');
-  const saved = localStorage.getItem('erms-theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
-  btn.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('erms-theme', next);
-    icon.textContent = next === 'dark' ? '☀️' : '🌙';
-  });
-})();
-</script>
 </body>
 </html>

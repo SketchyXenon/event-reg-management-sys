@@ -121,7 +121,10 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY category_name
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div>
+  <button id="menuToggle" class="topbar-btn" style="display:none">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+    <div>
     <div class="topbar-title">Manage Events</div>
     <div class="topbar-subtitle"><?= count($events) ?> events total</div>
   </div>
@@ -136,6 +139,8 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY category_name
       New Event
     </button>
   </div>
+</div>
+  <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme"><span id="themeIcon">☀️</span></button>
 </div>
 
 <!-- MAIN -->
@@ -337,41 +342,26 @@ $categories = $pdo->query("SELECT * FROM event_categories ORDER BY category_name
   </div>
 </div>
 
+<script src="../assets/js/global.js"></script>
 <script src="assets/js/admin.js"></script>
 <script>
+// ── Edit event modal ───────────────────────────────────────
 function openEditModal(ev) {
   document.getElementById('edit_event_id').value   = ev.id;
   document.getElementById('edit_title').value       = ev.title;
-  document.getElementById('edit_venue').value    = ev.venue;
+  document.getElementById('edit_venue').value       = ev.venue;
   document.getElementById('edit_max_slots').value   = ev.max_slots;
   document.getElementById('edit_status').value      = ev.status;
   document.getElementById('edit_description').value = ev.description || '';
   document.getElementById('edit_category_id').value = ev.category_id || '';
-  // Format datetime-local
-  const d = new Date(ev.date_time);
-  const pad = n => String(n).padStart(2,'0');
+  const d   = new Date(ev.date_time);
+  const pad = n => String(n).padStart(2, '0');
   document.getElementById('edit_date_time').value =
     `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   openModal('editModal');
 }
 
-filterTable('evtSearch','eventsTable');
-</script>
-<script>
-(function() {
-  const html = document.documentElement;
-  const btn  = document.getElementById('themeToggle');
-  const icon = document.getElementById('themeIcon');
-  const saved = localStorage.getItem('erms-theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
-  btn.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('erms-theme', next);
-    icon.textContent = next === 'dark' ? '☀️' : '🌙';
-  });
-})();
+filterTable('evtSearch', 'eventsTable');
 </script>
 </body>
 </html>

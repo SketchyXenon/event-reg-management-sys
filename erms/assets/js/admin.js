@@ -21,32 +21,9 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ── Modal helpers ──────────────────────────────────────────
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('open');
-}
-
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('open');
-}
-
-// Close modal on backdrop click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.remove('open');
-  });
-});
-
-// ── Alert auto-dismiss ─────────────────────────────────────
-document.querySelectorAll('.alert[data-auto-dismiss]').forEach(alert => {
-  setTimeout(() => {
-    alert.style.transition = 'opacity 0.4s ease';
-    alert.style.opacity = '0';
-    setTimeout(() => alert.remove(), 400);
-  }, 5000);
-});
+// ── Modal helpers & alert auto-dismiss ────────────────────
+// Provided by global.js (loaded before admin.js).
+// openModal(id) and closeModal(id) are available globally.
 
 // ── Confirm delete ─────────────────────────────────────────
 document.querySelectorAll('[data-confirm]').forEach(btn => {

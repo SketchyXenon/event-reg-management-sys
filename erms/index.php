@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $is_logged_in = isset($_SESSION['user_id']);
 $user_role    = $_SESSION['role'] ?? '';
 
+// Safely fetch events — works regardless of event_categories structure
 $featured = [];
 try {
     $featured = $pdo->query(
@@ -39,18 +40,18 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CTU Danao — Event Registration & Management System</title>
-  <link rel="icon" href="/assets/img/favicon.ico" type="image/x-icon">
+  <title>ERMS — Event Registration & Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
+<!-- ══ NAV ═══════════════════════════════════════════════════ -->
 <nav class="nav" id="navbar">
   <div class="nav-brand">
-    <div class="nav-crest">CTU</div>
-    <div class="nav-name">Event Registration <span>&</span> Management System</div>
+    <div class="nav-crest">E</div>
+    <div class="nav-name">ERM<span>S</span></div>
   </div>
 
   <ul class="nav-links">
@@ -73,7 +74,7 @@ try {
       <a href="backend/logout.php" class="btn btn-primary">Sign Out</a>
     <?php else: ?>
       <a href="login.php" class="btn btn-outline">Sign In</a>
-      <a href="register.php" class="btn btn-gold">Register</a>
+      <a href="register.php" class="btn btn-gold">Register Free</a>
     <?php endif; ?>
   </div>
 </nav>
@@ -85,7 +86,7 @@ try {
   <div class="orb orb-3"></div>
 
   <div class="hero-content">
-    <div class="hero-eyebrow">CTU Danao Event Registration & Management System</div>
+    <div class="hero-eyebrow">Academic Event Management System</div>
 
     <h1 class="hero-title">
       Discover &amp; Register for
@@ -94,16 +95,16 @@ try {
     </h1>
 
     <p class="hero-desc">
-      Browse upcoming academic events, seminars, and workshops - then
+      Browse upcoming academic events, seminars, and workshops — then
       register in seconds. Your campus experience, organized in one place.
     </p>
 
     <div class="hero-actions">
       <?php if ($is_logged_in): ?>
         <a href="<?= $user_role==='admin'?'admin/dashboard.php':'dashboard.php' ?>" class="btn btn-gold btn-lg">Go to Dashboard</a>
-        <a href="#events" class="btn btn-outline btn-lg">Browse Campus Events</a>
+        <a href="#events" class="btn btn-outline btn-lg">Browse Events</a>
       <?php else: ?>
-        <a href="register.php" class="btn btn-gold btn-lg">Get Started  </a>
+        <a href="register.php" class="btn btn-gold btn-lg">Get Started — It's Free</a>
         <a href="#events" class="btn btn-outline btn-lg">Browse Events</a>
       <?php endif; ?>
     </div>
@@ -224,7 +225,7 @@ try {
             <div class="step-num">01</div>
             <div class="step-body">
               <div class="step-title">Create Your Account</div>
-              <div class="step-desc">Register with your student ID and your email. Verification is instant.</div>
+              <div class="step-desc">Register with your student ID and institutional email. Verification is instant.</div>
             </div>
           </div>
           <div class="step reveal">
@@ -292,7 +293,7 @@ try {
   </div>
 </section>
 
-
+<!-- ══ CTA ════════════════════════════════════════════════════ -->
 <?php if (!$is_logged_in): ?>
 <section class="cta-section">
   <div class="cta-inner">
@@ -313,10 +314,11 @@ try {
 </section>
 <?php endif; ?>
 
+<!-- ══ FOOTER ═════════════════════════════════════════════════ -->
 <footer>
   <div class="footer-brand">
-    <div class="footer-crest">CTU</div>
-    CTU Danao — Event Registration &amp; Management System
+    <div class="footer-crest">E</div>
+    ERMS — Event Registration &amp; Management System
   </div>
   <div class="footer-copy">
     &copy; <?= date('Y') ?> All rights reserved.
@@ -330,72 +332,6 @@ try {
 </footer>
 
 
-<script>
-
-
-(function() {
-  const html      = document.documentElement;
-  const toggleBtn = document.getElementById('themeToggle');
-  const themeIcon = document.getElementById('themeIcon');
-
-  const saved = localStorage.getItem('erms-theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  themeIcon.textContent = saved === 'dark' ? '☀️' : '🌙';
-
-  toggleBtn.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('erms-theme', next);
-    themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
-  });
-})();
-
-
-window.addEventListener('scroll', () => {
-  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 30);
-});
-
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry, i) => {
-    if (entry.isIntersecting) {
-      setTimeout(() => entry.target.classList.add('visible'), i * 80);
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.12 });
-
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-function animateCounter(el) {
-  const target = parseInt(el.dataset.target, 10);
-  if (isNaN(target) || target === 0) return;
-  const duration = 1200;
-  const start = performance.now();
-  const ease = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-
-  function tick(now) {
-    const progress = Math.min((now - start) / duration, 1);
-    const current  = Math.round(ease(progress) * target);
-    // Preserve the + suffix span
-    const suffix = el.querySelector('.accent');
-    el.childNodes[0].textContent = current.toLocaleString();
-    if (progress < 1) requestAnimationFrame(tick);
-  }
-
-  requestAnimationFrame(tick);
-}
-
-const counterObs = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      animateCounter(entry.target);
-      counterObs.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.5 });
-
-document.querySelectorAll('.stat-num[data-target]').forEach(el => counterObs.observe(el));
-</script>
+<script src="assets/js/global.js"></script>
 </body>
 </html>

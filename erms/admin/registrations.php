@@ -125,7 +125,10 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div>
+  <button id="menuToggle" class="topbar-btn" style="display:none">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+    <div>
     <div class="topbar-title">Registrations</div>
     <div class="topbar-subtitle"><?= count($registrations) ?> records shown</div>
   </div>
@@ -134,6 +137,8 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
     <input type="text" id="regSearch" placeholder="Search…">
   </div>
+</div>
+  <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme"><span id="themeIcon">☀️</span></button>
 </div>
 
 <!-- MAIN -->
@@ -208,7 +213,7 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
                   <td class="td-mono"><?= $r['registration_id'] ?></td>
                   <td>
                     <div class="td-primary"><?= htmlspecialchars($r['full_name']) ?></div>
-                    <div style="font-size:0.75rem;color:var(--text-muted)"><?= htmlspecialchars($r['email']) ?></div>
+                    <div style="font-size:0.75rem;color:var(--text-3)"><?= htmlspecialchars($r['email']) ?></div>
                   </td>
                   <td class="td-mono"><?= htmlspecialchars($r['student_id']) ?></td>
                   <td class="td-primary"><?= htmlspecialchars($r['event_title']) ?></td>
@@ -235,7 +240,7 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
-              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No registrations found.</td></tr>
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">No registrations found.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -257,10 +262,10 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
       <input type="hidden" name="action" value="update_status">
       <input type="hidden" name="reg_id" id="status_reg_id">
       <div class="modal-body">
-        <p style="color:var(--text-secondary);font-size:0.87rem;margin-bottom:14px">
-          <strong id="status_name" style="color:var(--text-primary)"></strong>
+        <p style="color:var(--text-2);font-size:0.87rem;margin-bottom:14px">
+          <strong id="status_name" style="color:var(--text)"></strong>
           &mdash;
-          <span id="status_event" style="color:var(--text-muted)"></span>
+          <span id="status_event" style="color:var(--text-3)"></span>
         </p>
         <div class="form-group">
           <label class="form-label">Status</label>
@@ -279,32 +284,19 @@ $events_list = $pdo->query("SELECT id, title FROM events ORDER BY date_time DESC
   </div>
 </div>
 
+<script src="../assets/js/global.js"></script>
 <script src="assets/js/admin.js"></script>
 <script>
+// ── Status update modal ────────────────────────────────────
 function openStatusModal(reg) {
-  document.getElementById('status_reg_id').value = reg.id;
+  document.getElementById('status_reg_id').value      = reg.id;
   document.getElementById('status_name').textContent  = reg.name;
   document.getElementById('status_event').textContent = reg.event;
-  document.getElementById('status_select').value = reg.status;
+  document.getElementById('status_select').value      = reg.status;
   openModal('statusModal');
 }
-filterTable('regSearch','regTable');
-</script>
-<script>
-(function() {
-  const html = document.documentElement;
-  const btn  = document.getElementById('themeToggle');
-  const icon = document.getElementById('themeIcon');
-  const saved = localStorage.getItem('erms-theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
-  btn.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('erms-theme', next);
-    icon.textContent = next === 'dark' ? '☀️' : '🌙';
-  });
-})();
+
+filterTable('regSearch', 'regTable');
 </script>
 </body>
 </html>

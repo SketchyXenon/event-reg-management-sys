@@ -120,7 +120,10 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div>
+  <button id="menuToggle" class="topbar-btn" style="display:none">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+    <div>
     <div class="topbar-title">Manage Users</div>
     <div class="topbar-subtitle"><?= count($users) ?> users shown</div>
   </div>
@@ -129,6 +132,8 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
     <input type="text" id="userSearch" placeholder="Search users…">
   </div>
+</div>
+  <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme"><span id="themeIcon">☀️</span></button>
 </div>
 
 <!-- MAIN -->
@@ -185,7 +190,7 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
                   <td class="td-mono"><?= $u['id'] ?></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px">
-                      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent-blue),var(--accent-blue-l));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.75rem;color:white;flex-shrink:0">
+                      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-l));display:flex;align-items:center;justify-content:center;font-family:var(--ff-d);font-size:0.75rem;color:white;flex-shrink:0">
                         <?= strtoupper(substr($u['full_name'],0,1)) ?>
                       </div>
                       <span class="td-primary"><?= htmlspecialchars($u['full_name']) ?></span>
@@ -238,7 +243,7 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
-              <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No users found.</td></tr>
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-3)">No users found.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -260,8 +265,8 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
       <input type="hidden" name="action" value="update_role">
       <input type="hidden" name="user_id" id="role_user_id">
       <div class="modal-body">
-        <p style="color:var(--text-secondary);margin-bottom:16px;font-size:0.9rem">
-          Changing role for: <strong id="role_user_name" style="color:var(--text-primary)"></strong>
+        <p style="color:var(--text-2);margin-bottom:16px;font-size:0.9rem">
+          Changing role for: <strong id="role_user_name" style="color:var(--text)"></strong>
         </p>
         <div class="form-group">
           <label class="form-label">New Role</label>
@@ -279,31 +284,18 @@ $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")-
   </div>
 </div>
 
+<script src="../assets/js/global.js"></script>
 <script src="assets/js/admin.js"></script>
 <script>
+// ── Role change modal ──────────────────────────────────────
 function openRoleModal(user) {
-  document.getElementById('role_user_id').value    = user.id;
+  document.getElementById('role_user_id').value         = user.id;
   document.getElementById('role_user_name').textContent = user.name;
-  document.getElementById('role_select').value     = user.role;
+  document.getElementById('role_select').value          = user.role;
   openModal('roleModal');
 }
-filterTable('userSearch','usersTable');
-</script>
-<script>
-(function() {
-  const html = document.documentElement;
-  const btn  = document.getElementById('themeToggle');
-  const icon = document.getElementById('themeIcon');
-  const saved = localStorage.getItem('erms-theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  icon.textContent = saved === 'dark' ? '☀️' : '🌙';
-  btn.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('erms-theme', next);
-    icon.textContent = next === 'dark' ? '☀️' : '🌙';
-  });
-})();
+
+filterTable('userSearch', 'usersTable');
 </script>
 </body>
 </html>
