@@ -47,16 +47,14 @@ if ($event_filter > 0) {
 
 $where_sql = $where ? "WHERE " . implode(" AND ", $where) : '';
 
-$registrations = $pdo->prepare(
-  "SELECT r.registration_id, r.status, r.registered_at,
-          u.full_name, u.student_id, u.email,
-          e.title AS event_title, e.date_time, e.venue
-   FROM registrations r
-   JOIN users u ON u.user_id = r.user_id
-   JOIN events e ON e.event_id = r.event_id
-   $where_sql
-   ORDER BY r.registered_at DESC"
-);
+$registrations = $pdo->query("
+    SELECT r.registration_id, r.status, r.registered_at,
+           u.full_name, u.student_id, u.email,
+           e.title AS event_title, e.date_time, e.venue
+    FROM registrations r
+    JOIN users u ON u.user_id = r.user_id
+    JOIN events e ON e.event_id = r.event_id
+    ORDER BY r.registered_at DESC" . $where_sql ."")->fetchAll();
 $registrations->execute($params);
 $registrations = $registrations->fetchAll(PDO::FETCH_ASSOC);
 

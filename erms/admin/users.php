@@ -59,8 +59,13 @@ $sql = "SELECT u.*, COUNT(r.registration_id) AS reg_count
         LEFT JOIN registrations r ON r.user_id = u.id
         " . ($filter !== 'all' ? "WHERE u.role='" . ($filter==='admin'?'admin':'student') . "'" : '') . "
         GROUP BY u.id ORDER BY u.created_at DESC";
-$users = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-
+$users = $pdo->query("
+    SELECT u.user_id, u.full_name, u.student_id, u.email, u.is_active, u.created_at,
+           COUNT(r.registration_id) AS total_registrations
+    FROM users u
+    LEFT JOIN registrations r ON r.user_id = u.user_id
+    GROUP BY u.user_id
+")->fetchAll(PDO::FETCH_ASSOC);
 $total_admin   = $pdo->query("SELECT COUNT(*) FROM users WHERE role='admin'")->fetchColumn();
 $total_student = $pdo->query("SELECT COUNT(*) FROM users WHERE role='student'")->fetchColumn();
 ?>
