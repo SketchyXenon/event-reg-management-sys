@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
     } else {
+<<<<<<< HEAD
 
 // 1. Check if email exists
 $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
@@ -53,6 +54,10 @@ if ($user) {
     error_log("Password reset link: " . $resetLink);
 }
 $success = true;
+=======
+        // TODO: replace this block with actual email + token logic
+        $success = true; // placeholder
+>>>>>>> 1abe8f6eb5831a2dc1380e6163e6e27798b6c8ea
     }
 }
 ?>

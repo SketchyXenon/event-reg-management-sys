@@ -4,7 +4,7 @@ require_once __DIR__ . '/../backend/db_connect.php';
 require_once __DIR__ . '/../backend/csrf_helper.php';
 
 require_login('../login.php');
-admin_only();
+require_admin('../login.php');
 
 $admin     = $_SESSION;
 $full_name = $_SESSION['full_name'];
@@ -28,77 +28,22 @@ $msg      = '';
 $msg_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify(); // handles failure internally with die()
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $msg = 'Invalid request.'; $msg_type = 'error';
+    } else {
+        $action = $_POST['action'] ?? '';
 
-    $action = $_POST['action'] ?? '';
+        if ($action === 'create') {
+            // TODO: implement
+            $msg = 'Category created. (TODO: implement)'; $msg_type = 'success';
 
-    // ══ ACTION: create ════════════════════════════════════════
-    if ($action === 'create') {
+        } elseif ($action === 'edit') {
+            // TODO: implement
+            $msg = 'Category updated. (TODO: implement)'; $msg_type = 'success';
 
-        $category_name = trim($_POST['category_name'] ?? '');
-        $description   = trim($_POST['description']   ?? '');
-
-        if ($category_name === '') {
-            $msg = 'Category name is required.'; $msg_type = 'error';
-        } elseif (mb_strlen($category_name) > 100) {
-            $msg = 'Category name must not exceed 100 characters.'; $msg_type = 'error';
-        } else {
-            $stmt = $pdo->prepare("SELECT category_id FROM event_categories WHERE category_name = ?");
-            $stmt->execute([$category_name]);
-
-            if ($stmt->fetch()) {
-                $msg = 'A category with that name already exists.'; $msg_type = 'error';
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO event_categories (category_name, description) VALUES (?, ?)");
-                $stmt->execute([$category_name, $description ?: null]);
-                $msg = 'Category created successfully.'; $msg_type = 'success';
-            }
-        }
-
-    // ══ ACTION: edit ══════════════════════════════════════════
-    } elseif ($action === 'edit') {
-
-        $category_id   = (int) ($_POST['category_id']   ?? 0);
-        $category_name = trim($_POST['category_name'] ?? '');
-        $description   = trim($_POST['description']   ?? '');
-
-        if ($category_id <= 0) {
-            $msg = 'Invalid category.'; $msg_type = 'error';
-        } elseif ($category_name === '') {
-            $msg = 'Category name is required.'; $msg_type = 'error';
-        } elseif (mb_strlen($category_name) > 100) {
-            $msg = 'Category name must not exceed 100 characters.'; $msg_type = 'error';
-        } else {
-            $stmt = $pdo->prepare("SELECT category_id FROM event_categories WHERE category_name = ? AND category_id != ?");
-            $stmt->execute([$category_name, $category_id]);
-
-            if ($stmt->fetch()) {
-                $msg = 'Another category with that name already exists.'; $msg_type = 'error';
-            } else {
-                $stmt = $pdo->prepare("UPDATE event_categories SET category_name = ?, description = ? WHERE category_id = ?");
-                $stmt->execute([$category_name, $description ?: null, $category_id]);
-                $msg = 'Category updated successfully.'; $msg_type = 'success';
-            }
-        }
-
-    // ══ ACTION: delete ════════════════════════════════════════
-    } elseif ($action === 'delete') {
-
-        $category_id = (int) ($_POST['category_id'] ?? 0);
-
-        if ($category_id <= 0) {
-            $msg = 'Invalid category.'; $msg_type = 'error';
-        } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM events WHERE category_id = ?");
-            $stmt->execute([$category_id]);
-
-            if ((int) $stmt->fetchColumn() > 0) {
-                $msg = 'Cannot delete — events are using this category.'; $msg_type = 'error';
-            } else {
-                $stmt = $pdo->prepare("DELETE FROM event_categories WHERE category_id = ?");
-                $stmt->execute([$category_id]);
-                $msg = 'Category deleted successfully.'; $msg_type = 'success';
-            }
+        } elseif ($action === 'delete') {
+            // TODO: implement
+            $msg = 'Category deleted. (TODO: implement)'; $msg_type = 'success';
         }
     }
 }
@@ -239,9 +184,11 @@ $categories = $pdo->query(
                 <td>
                   <div class="action-btns">
                     <button class="btn-action edit"
-                     data-id="<?= $cat['category_id'] ?>"
-                     data-name="<?= htmlspecialchars($cat['category_name'], ENT_QUOTES) ?>"
-                     data-desc="<?= htmlspecialchars($cat['description'] ?? '', ENT_QUOTES) ?>">
+                      onclick="openEditModal({
+                        id:   <?= $cat['category_id'] ?>,
+                        name: <?= json_encode($cat['category_name']) ?>,
+                        desc: <?= json_encode($cat['description'] ?? '') ?>
+                      })">
                       <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       Edit
                     </button>
@@ -333,19 +280,12 @@ $categories = $pdo->query(
 <script src="../assets/js/global.js"></script>
 <script src="assets/js/admin.js"></script>
 <script>
-document.querySelectorAll('.btn-action.edit').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.getElementById('edit_category_id').value = btn.dataset.id;
-    document.getElementById('edit_name').value        = btn.dataset.name;
-    document.getElementById('edit_desc').value        = btn.dataset.desc;
-
-    var freshToken = document.querySelector('#createModal input[name="_csrf_token"]');
-    var editToken  = document.querySelector('#editModal input[name="_csrf_token"]');
-    if (freshToken && editToken) editToken.value = freshToken.value;
-
-    openModal('editModal');
-  });
-});
+function openEditModal(cat) {
+  document.getElementById('edit_category_id').value = cat.id;
+  document.getElementById('edit_name').value        = cat.name;
+  document.getElementById('edit_desc').value        = cat.desc;
+  openModal('editModal');
+}
 
 filterTable('catSearch', 'catsTable');
 </script>
