@@ -38,7 +38,6 @@ $error   = '';
 //   - UPDATE users SET password=? WHERE user_id=? using hash_password()
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-<<<<<<< HEAD
     csrf_verify();
 
     $action = $_POST['action'] ?? '';
@@ -109,22 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }  // ← single closing brace for the POST block
-=======
-    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-        $error = 'Invalid request. Please try again.';
-    } else {
-        $action = $_POST['action'] ?? '';
-
-        if ($action === 'update_info') {
-            // TODO: implement info update
-            $success = 'Profile updated successfully.'; // placeholder
-        } elseif ($action === 'change_password') {
-            // TODO: implement password change
-            $success = 'Password changed successfully.'; // placeholder
-        }
-    }
-}
->>>>>>> 1abe8f6eb5831a2dc1380e6163e6e27798b6c8ea
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">

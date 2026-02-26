@@ -14,7 +14,6 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 // 4. On POST: validate new password, hash it, update users table, mark token used
 //    UPDATE users SET password = ? WHERE email = ?
 //    UPDATE password_resets SET used = 1 WHERE token = ?
-<<<<<<< HEAD
 // TASK COMPLETE :D
 $token   = trim($_GET['token'] ?? '');
 $valid   = false;
@@ -49,36 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['token'] ?? '';
     $password = $_POST['password'] ?? '';
     $confirm = $_POST['confirm_password'] ?? '';
-=======
-
-$token   = trim($_GET['token'] ?? '');
-$valid   = false;  // TODO: set to true if token found and not expired
-$email   = '';     // TODO: set to email from password_resets row
-$success = false;
-$error   = '';
-
-// TODO: Uncomment and implement this block:
-// if ($token) {
-//     $stmt = $pdo->prepare("SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() AND used = 0");
-//     $stmt->execute([$token]);
-//     $row = $stmt->fetch();
-//     if ($row) { $valid = true; $email = $row['email']; }
-// }
-
-// Placeholder so the form renders during development
-$valid = (bool) $token; // REMOVE THIS LINE once real logic is implemented
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
-    $password = $_POST['password']        ?? '';
-    $confirm  = $_POST['confirm_password'] ?? '';
->>>>>>> 1abe8f6eb5831a2dc1380e6163e6e27798b6c8ea
 
     if (strlen($password) < 8) {
         $error = 'Password must be at least 8 characters.';
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
     } else {
-<<<<<<< HEAD
         // 1. Validate token
         $stmt = $pdo->prepare("
             SELECT email FROM password_resets
@@ -102,13 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
 
             $success = true;
         }
-=======
-        // TODO: replace placeholder with real update:
-        // $hashed = hash_password($password);
-        // $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")->execute([$hashed, $email]);
-        // $pdo->prepare("UPDATE password_resets SET used = 1 WHERE token = ?")->execute([$token]);
-        $success = true; // placeholder
->>>>>>> 1abe8f6eb5831a2dc1380e6163e6e27798b6c8ea
     }
 }
 ?>
@@ -188,10 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         <?php endif; ?>
 
         <form method="POST" action="reset-password.php?token=<?= urlencode($token) ?>" id="resetForm">
-<<<<<<< HEAD
           <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
-=======
->>>>>>> 1abe8f6eb5831a2dc1380e6163e6e27798b6c8ea
 
           <div class="form-group">
             <label class="form-label" for="password">New Password</label>
