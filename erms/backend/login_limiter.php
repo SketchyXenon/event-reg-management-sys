@@ -34,7 +34,7 @@ const MAX_ATTEMPTS = 7;
 
 // Max failed attempts from a single IP (regardless of email)
 const IP_MAX_ATTEMPTS = 20;
-const IP_WINDOW_SECONDS = 900; // 15-minute sliding window for IP tracking
+const IP_WINDOW_SECONDS = 600; // 10-minute sliding window for IP tracking
 
 
 // ══════════════════════════════════════════════════════════════
@@ -71,8 +71,10 @@ function get_lockout_duration(int $attempts): int
 // ══════════════════════════════════════════════════════════════
 function format_lockout_time(int $seconds): string
 {
-    if ($seconds < 60)   return "$seconds seconds";
-    if ($seconds < 3600) {
+    if ($seconds < 60)   
+        return "$seconds seconds";
+    if ($seconds < 3600) 
+        {
         $mins = intdiv($seconds, 60);
         return $mins === 1 ? "1 minute" : "$mins minutes";
     }
@@ -106,17 +108,20 @@ function is_account_locked(string $email): array
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
 
-        if (!$user || !$user['locked_until']) {
+        if (!$user || !$user['locked_until']) 
+            {
             return ['locked' => false, 'seconds_left' => 0, 'message' => ''];
         }
 
         $locked_until = strtotime($user['locked_until']);
         $now          = time();
 
-        if ($now < $locked_until) {
+        if ($now < $locked_until) 
+            {
             $seconds_left = $locked_until - $now;
             $time_str     = format_lockout_time($seconds_left);
-            return [
+            return 
+            [
                 'locked'       => true,
                 'seconds_left' => $seconds_left,
                 'message'      => "Too many failed attempts. Please try again in <strong>$time_str</strong>.",
@@ -127,7 +132,8 @@ function is_account_locked(string $email): array
         clear_lockout($email);
         return ['locked' => false, 'seconds_left' => 0, 'message' => ''];
 
-    } catch (PDOException $e) {
+    } catch (PDOException $e) 
+    {
         error_log("is_account_locked error: " . $e->getMessage());
         return ['locked' => false, 'seconds_left' => 0, 'message' => ''];
     }
@@ -145,7 +151,8 @@ function is_ip_blocked(string $ip): array
 {
     global $pdo;
 
-    try {
+    try 
+    {
         $window_start = date('Y-m-d H:i:s', time() - IP_WINDOW_SECONDS);
 
         $stmt = $pdo->prepare(
@@ -158,10 +165,11 @@ function is_ip_blocked(string $ip): array
         $stmt->execute([':ip' => $ip, ':window_start' => $window_start]);
         $row = $stmt->fetch();
 
-        if ($row['attempt_count'] >= IP_MAX_ATTEMPTS) {
+        if ($row['attempt_count'] >= IP_MAX_ATTEMPTS) 
+            {
             return [
                 'blocked' => true,
-                'message' => 'Too many login attempts from your network. Please wait 15 minutes before trying again.',
+                'message' => 'Too many login attempts from your network. Please wait 10 minutes before trying again.',
             ];
         }
 
@@ -190,7 +198,8 @@ function record_failed_attempt(string $email, string $ip): array
 {
     global $pdo;
 
-    try {
+    try 
+    {
         // Log to login_attempts table
         $log = $pdo->prepare(
             "INSERT INTO login_attempts (email, ip_address, is_successful)
@@ -219,7 +228,8 @@ function record_failed_attempt(string $email, string $ip): array
         $lockout_seconds = get_lockout_duration($attempts);
         $lockout_time    = '';
 
-        if ($lockout_seconds > 0) {
+        if ($lockout_seconds > 0) 
+            {
             $locked_until = date('Y-m-d H:i:s', time() + $lockout_seconds);
             $lock = $pdo->prepare(
                 "UPDATE users SET locked_until = :locked_until WHERE email = :email"
@@ -234,7 +244,9 @@ function record_failed_attempt(string $email, string $ip): array
             'lockout_time' => $lockout_time,
         ];
 
-    } catch (PDOException $e) {
+    } 
+    catch (PDOException $e) 
+    {
         error_log("record_failed_attempt error: " . $e->getMessage());
         return ['attempts' => 0, 'locked' => false, 'lockout_time' => ''];
     }
@@ -253,7 +265,8 @@ function record_successful_login(string $email, string $ip): void
 {
     global $pdo;
 
-    try {
+    try 
+    {
         // Log the successful attempt
         $log = $pdo->prepare(
             "INSERT INTO login_attempts (email, ip_address, is_successful)
@@ -264,7 +277,8 @@ function record_successful_login(string $email, string $ip): void
         // Reset lockout state on the user
         clear_lockout($email);
 
-    } catch (PDOException $e) {
+    } 
+    catch (PDOException $e) {
         error_log("record_successful_login error: " . $e->getMessage());
     }
 }
@@ -340,11 +354,14 @@ function remaining_attempts_message(int $attempts): string
     $thresholds = array_keys(LOCKOUT_SCHEDULE);
     sort($thresholds);
 
-    foreach ($thresholds as $threshold) {
-        if ($attempts < $threshold) {
+    foreach ($thresholds as $threshold) 
+        {
+        if ($attempts < $threshold) 
+            {
             $remaining = $threshold - $attempts;
             $next_lock = format_lockout_time(LOCKOUT_SCHEDULE[$threshold]);
-            if ($remaining === 1) {
+            if ($remaining === 1) 
+                {
                 return "Warning: 1 more failed attempt will lock your account for $next_lock.";
             }
             return "Warning: $remaining more failed attempts will lock your account for $next_lock.";

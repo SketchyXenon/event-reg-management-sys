@@ -1,14 +1,12 @@
 <?php
-// ============================================================
-//  logout.php  —  lives in /backend/
-//  Destroys session and redirects to root login page
-// ============================================================
 
+//logout page
 session_start();
 
 $_SESSION = [];
 
-if (ini_get("session.use_cookies")) {
+if (ini_get("session.use_cookies")) 
+    {
     $params = session_get_cookie_params();
     setcookie(
         session_name(), '',

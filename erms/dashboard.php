@@ -112,6 +112,11 @@ $first_name = explode(' ', $full_name)[0];
       <h1>ERMS</h1>
       <p>Student Portal</p>
     </div>
+    </div>
+     <div class="sb-clock">
+      <div class="sb-clock__time" id="sbTime">--:--:--</div>
+      <div class="sb-clock__date" id="sbDate">--- --, ----</div>
+    </div>
   </div>
 
   <nav class="sidebar-nav">
@@ -376,5 +381,23 @@ $first_name = explode(' ', $full_name)[0];
 
 
 <script src="assets/js/global.js"></script>
+<script>
+  (function() {
+  var days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tick() {
+    var now = new Date();
+    var h   = String(now.getHours()).padStart(2,'0');
+    var m   = String(now.getMinutes()).padStart(2,'0');
+    var s   = String(now.getSeconds()).padStart(2,'0');
+    var tEl = document.getElementById('sbTime');
+    var dEl = document.getElementById('sbDate');
+    if (tEl) tEl.textContent = h + ':' + m + ':' + s;
+    if (dEl) dEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate() + ' ' + now.getFullYear();
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 </body>
 </html>

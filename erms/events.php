@@ -60,51 +60,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // ── Filters ────────────────────────────────────────────────
-$search    = trim($_GET['q'] ?? '');
-$filter    = $_GET['filter'] ?? 'all';  // all | available | registered
-$sort      = $_GET['sort'] ?? 'date';   // date | slots
+require_once __DIR__ . '/backend/paginate.php';
 
-// ── Fetch Events ───────────────────────────────────────────
-$where  = ["e.date_time >= CURDATE()"];
-$params = [];
+$search      = trim($_GET['q']           ?? '');
+$filter      = $_GET['filter']           ?? 'all';  // all | available | registered
+$sort        = $_GET['sort']             ?? 'date'; // date | slots
+$category_f  = (int)($_GET['category_id'] ?? 0);
+$page        = max(1, (int)($_GET['page'] ?? 1));
+$per_page    = 9;
 
+// ── Fetch categories for filter bar ───────────────────────
+$all_categories = $pdo->query("SELECT * FROM event_categories ORDER BY category_name")->fetchAll(PDO::FETCH_ASSOC);
+
+// ── Build search WHERE ─────────────────────────────────────
+$search_where  = "e.date_time >= CURDATE()";
+$search_params = [];
 if ($search) {
-    $where[]  = "(e.title LIKE ? OR e.venue LIKE ? OR e.description LIKE ?)";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
+    $search_where .= " AND (e.title LIKE ? OR e.venue LIKE ? OR e.description LIKE ?)";
+    $search_params[] = "%$search%";
+    $search_params[] = "%$search%";
+    $search_params[] = "%$search%";
+}
+if ($category_f > 0) {
+    $search_where  .= " AND e.category_id = ?";
+    $search_params[] = $category_f;
 }
 
 $order = $sort === 'slots' ? 'slots_left ASC' : 'e.date_time ASC';
-$where_sql = 'WHERE ' . implode(' AND ', $where);
 
-$events = $pdo->prepare(
+// ── Tab counts (all, available, registered) ────────────────
+$tab_stmt = $pdo->prepare(
+    "SELECT
+        COUNT(DISTINCT e.event_id) AS total,
+        COUNT(DISTINCT CASE WHEN ur.user_id IS NOT NULL THEN e.event_id END) AS registered,
+        COUNT(DISTINCT CASE WHEN ur.user_id IS NULL AND (e.max_slots - COALESCE(ec.enrolled,0)) > 0 THEN e.event_id END) AS available
+     FROM events e
+     LEFT JOIN (SELECT event_id, COUNT(*) AS enrolled FROM registrations WHERE status != 'cancelled' GROUP BY event_id) ec ON ec.event_id = e.event_id
+     LEFT JOIN registrations ur ON ur.event_id = e.event_id AND ur.user_id = ? AND ur.status != 'cancelled'
+     WHERE $search_where"
+);
+$tab_stmt->execute(array_merge([$user_id], $search_params));
+$counts = $tab_stmt->fetch(PDO::FETCH_ASSOC) ?: ['total' => 0, 'registered' => 0, 'available' => 0];
+$total_count      = (int)$counts['total'];
+$registered_count = (int)$counts['registered'];
+$available_count  = (int)$counts['available'];
+
+// ── Filter-specific count for pagination ───────────────────
+$filter_having = '';
+if ($filter === 'available')   $filter_having = 'HAVING is_registered = 0 AND slots_left > 0';
+elseif ($filter === 'registered') $filter_having = 'HAVING is_registered = 1';
+
+$count_stmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM (
+        SELECT e.event_id,
+               (e.max_slots - COUNT(DISTINCT r.registration_id)) AS slots_left,
+               MAX(CASE WHEN ur.user_id = ? THEN 1 ELSE 0 END) AS is_registered
+        FROM events e
+        LEFT JOIN registrations r  ON r.event_id = e.event_id AND r.status != 'cancelled'
+        LEFT JOIN registrations ur ON ur.event_id = e.event_id AND ur.user_id = ? AND ur.status != 'cancelled'
+        WHERE $search_where
+        GROUP BY e.event_id
+        $filter_having
+    ) AS sub"
+);
+$count_stmt->execute(array_merge([$user_id, $user_id], $search_params));
+$total = (int)$count_stmt->fetchColumn();
+
+$pg = paginate($total, $per_page, $page);
+
+// ── Paginated fetch ────────────────────────────────────────
+$events_stmt = $pdo->prepare(
     "SELECT e.event_id, e.title, e.description, e.date_time, e.venue, e.max_slots,
+            ec.category_name,
             COUNT(DISTINCT r.registration_id) AS enrolled,
             (e.max_slots - COUNT(DISTINCT r.registration_id)) AS slots_left,
-            MAX(CASE WHEN r2.user_id = ? AND r2.status != 'cancelled' THEN 1 ELSE 0 END) AS is_registered,
-            MAX(CASE WHEN r2.user_id = ? AND r2.status != 'cancelled' THEN r2.status ELSE NULL END) AS my_status
+            MAX(CASE WHEN ur.user_id = ? THEN 1 ELSE 0 END) AS is_registered,
+            MAX(CASE WHEN ur.user_id = ? THEN ur.status ELSE NULL END) AS my_status
      FROM events e
-     LEFT JOIN registrations r  ON r.event_id  = e.event_id AND r.status  != 'cancelled'
-     LEFT JOIN registrations r2 ON r2.event_id = e.event_id AND r2.user_id = ?
-     $where_sql
+     LEFT JOIN event_categories ec ON ec.category_id = e.category_id
+     LEFT JOIN registrations r  ON r.event_id = e.event_id AND r.status != 'cancelled'
+     LEFT JOIN registrations ur ON ur.event_id = e.event_id AND ur.user_id = ? AND ur.status != 'cancelled'
+     WHERE $search_where
      GROUP BY e.event_id
-     ORDER BY $order"
+     $filter_having
+     ORDER BY $order
+     LIMIT {$pg['per_page']} OFFSET {$pg['offset']}"
 );
-$params = array_merge([$user_id, $user_id, $user_id], $params);
-$events->execute($params);
-$all_events = $events->fetchAll(PDO::FETCH_ASSOC);
-
-// Apply filter
-if ($filter === 'available') {
-    $all_events = array_filter($all_events, fn($e) => !$e['is_registered'] && $e['slots_left'] > 0);
-} elseif ($filter === 'registered') {
-    $all_events = array_filter($all_events, fn($e) => $e['is_registered']);
-}
-
-$total = count($all_events);
-$available_count  = count(array_filter($all_events, fn($e) => !$e['is_registered'] && $e['slots_left'] > 0));
-$registered_count = count(array_filter($all_events, fn($e) => $e['is_registered']));
+$events_stmt->execute(array_merge([$user_id, $user_id, $user_id], $search_params));
+$all_events = $events_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -139,6 +182,12 @@ $registered_count = count(array_filter($all_events, fn($e) => $e['is_registered'
       My Registrations
     </a>
     <div class="nav-label" style="margin-top:8px">Account</div>
+    <a href="profile.php" class="nav-item">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      My Profile
+    </a>
     <a href="index.php" class="nav-item">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3"/></svg>
       Homepage
@@ -204,6 +253,17 @@ $registered_count = count(array_filter($all_events, fn($e) => $e['is_registered'
             class="filter-tab <?= $filter==='registered'?'active':'' ?>">Registered</button>
         </div>
 
+        <?php if (!empty($all_categories)): ?>
+          <select name="category_id" class="sort-select" onchange="this.form.submit()">
+            <option value="0">All Categories</option>
+            <?php foreach ($all_categories as $cat): ?>
+              <option value="<?= $cat['category_id'] ?>" <?= $category_f===$cat['category_id']?'selected':'' ?>>
+                <?= htmlspecialchars($cat['category_name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+
         <select name="sort" class="sort-select" onchange="this.form.submit()">
           <option value="date"  <?= $sort==='date' ?'selected':'' ?>>Sort: Earliest First</option>
           <option value="slots" <?= $sort==='slots'?'selected':'' ?>>Sort: Slots Available</option>
@@ -250,6 +310,17 @@ $registered_count = count(array_filter($all_events, fn($e) => $e['is_registered'
 
               <?php if ($ev['description']): ?>
                 <div class="event-desc"><?= htmlspecialchars($ev['description']) ?></div>
+              <?php endif; ?>
+
+              <?php if ($ev['category_name']): ?>
+                <div style="margin-bottom:8px">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:600;
+                    padding:2px 8px;border-radius:20px;
+                    background:rgba(74,122,181,0.12);color:var(--blue-l);border:1px solid rgba(74,122,181,0.25)">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+                    <?= htmlspecialchars($ev['category_name']) ?>
+                  </span>
+                </div>
               <?php endif; ?>
 
               <div class="event-meta">
@@ -318,6 +389,8 @@ $registered_count = count(array_filter($all_events, fn($e) => $e['is_registered'
         </div>
       <?php endif; ?>
     </div>
+
+    <?php render_pagination($pg, ['q' => $search, 'filter' => $filter, 'sort' => $sort, 'category_id' => $category_f ?: null]); ?>
 
   </div>
 </main>

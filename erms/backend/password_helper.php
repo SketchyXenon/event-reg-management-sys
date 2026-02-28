@@ -1,9 +1,7 @@
 <?php
 // ============================================================
-//  password_helper.php
 //  Bcrypt Password Utility
-//  Event Registration Management System
-//
+
 //  HOW BCRYPT WORKS:
 //  - Bcrypt is a one-way hashing algorithm — you can NEVER
 //    reverse it back to plain text.

@@ -22,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reg_id = (int)($_POST['reg_id'] ?? 0);
 
     if ($action === 'cancel' && $reg_id) {
-        // Verify this registration belongs to the logged-in student
         $check = $pdo->prepare(
             "SELECT r.registration_id, e.date_time
              FROM registrations r
@@ -33,15 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $row = $check->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
-            $msg      = 'Registration not found or already cancelled.';
+            $msg = 'Registration not found or already cancelled.';
             $msg_type = 'error';
         } elseif (strtotime($row['date_time']) < time()) {
-            $msg      = 'You cannot cancel a registration for a past event.';
+            $msg = 'You cannot cancel a registration for a past event.';
             $msg_type = 'error';
         } else {
             $pdo->prepare("UPDATE registrations SET status = 'cancelled' WHERE registration_id = ? AND user_id = ?")
                 ->execute([$reg_id, $user_id]);
-            $msg      = 'Registration cancelled successfully.';
+            $msg = 'Registration cancelled successfully.';
             $msg_type = 'success';
         }
     }
@@ -96,18 +95,24 @@ $regs = $regs->fetchAll(PDO::FETCH_ASSOC);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My Registrations — ERMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/global.css">
 </head>
 <body class="has-sidebar">
 
 <!-- ── Sidebar ─────────────────────────────────────────────── -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-crest">E</div>
-    <div class="brand-text">
-      <h1>ERMS</h1>
-      <p>Student Portal</p>
+    <div class="sb-brand-top">
+      <div class="brand-crest">E</div>
+      <div class="sb-brand-text">
+        <h1>ERMS</h1>
+        <p>Student Portal</p>
+      </div>
+    </div>
+    <div class="sb-clock">
+      <div class="sb-clock__time" id="sbTime">--:--:--</div>
+      <div class="sb-clock__date" id="sbDate">--- --, ----</div>
     </div>
   </div>
 
@@ -136,6 +141,13 @@ $regs = $regs->fetchAll(PDO::FETCH_ASSOC);
     </a>
 
     <div class="nav-label" style="margin-top:8px">Account</div>
+
+    <a href="profile.php" class="nav-item">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      My Profile
+    </a>
 
     <a href="index.php" class="nav-item">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,24 +179,29 @@ $regs = $regs->fetchAll(PDO::FETCH_ASSOC);
 
   <!-- Topbar -->
   <header class="topbar">
-    <button id="menuBtn" class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none">
-      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <button id="menuBtn" class="theme-toggle-btn" style="display:none"
+            onclick="document.getElementById('sidebar').classList.toggle('open')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
     </button>
     <div>
       <div class="topbar-title">My Registrations</div>
-      <div class="topbar-subtitle">Track and manage your event sign-ups</div>
+      <div class="topbar-sub">Track and manage your event sign-ups</div>
     </div>
-    <div class="topbar-spacer"></div>
+    <div class="topbar-space"></div>
     <a href="events.php" class="btn btn-primary btn-sm">
-      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
       Browse Events
     </a>
-    <button class="topbar-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
       <span id="themeIcon">☀️</span>
     </button>
   </header>
 
-  <div class="page-content">
+  <div class="page">
 
     <!-- Alert -->
     <?php if ($msg): ?>
@@ -198,146 +215,165 @@ $regs = $regs->fetchAll(PDO::FETCH_ASSOC);
       </div>
     <?php endif; ?>
 
-    <!-- Stats -->
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+    <!-- Stat cards — 4 col -->
+    <div class="stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
       <div class="stat-card blue">
         <div class="stat-label">Total Registered</div>
-        <div class="stat-value"><?= (int)$stats['total'] ?></div>
-        <div class="stat-change neutral">All time</div>
+        <div class="stat-val"><?= (int)$stats['total'] ?></div>
+        <div class="stat-desc">All time</div>
       </div>
       <div class="stat-card green">
         <div class="stat-label">Confirmed</div>
-        <div class="stat-value"><?= (int)$stats['confirmed'] ?></div>
-        <div class="stat-change up">✓ Active</div>
+        <div class="stat-val"><?= (int)$stats['confirmed'] ?></div>
+        <div class="stat-desc">Active spots</div>
       </div>
       <div class="stat-card gold">
         <div class="stat-label">Upcoming</div>
-        <div class="stat-value"><?= (int)$stats['upcoming'] ?></div>
-        <div class="stat-change neutral">Events ahead</div>
+        <div class="stat-val"><?= (int)$stats['upcoming'] ?></div>
+        <div class="stat-desc">Events ahead</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card red">
         <div class="stat-label">Pending</div>
-        <div class="stat-value"><?= (int)$stats['pending'] ?></div>
-        <div class="stat-change neutral">Awaiting confirm</div>
+        <div class="stat-val"><?= (int)$stats['pending'] ?></div>
+        <div class="stat-desc">Awaiting confirm</div>
       </div>
     </div>
 
-    <!-- Filter tabs -->
+    <!-- Registrations card -->
     <div class="card">
+      <!-- Header: title left, filter tabs right -->
       <div class="card-header">
         <div>
-          <div class="card-title">Registrations</div>
-          <div class="card-subtitle"><?= count($regs) ?> record<?= count($regs) !== 1 ? 's' : '' ?> found</div>
+          <div class="card-title">My Registrations</div>
+          <div class="card-sub"><?= count($regs) ?> record<?= count($regs) !== 1 ? 's' : '' ?><?= ($filter !== 'all') ? ' &mdash; filtered' : '' ?></div>
         </div>
-        <div class="tabs" style="margin-bottom:0">
-          <?php foreach (['all'=>'All','confirmed'=>'Confirmed','pending'=>'Pending','cancelled'=>'Cancelled'] as $val=>$label): ?>
-            <a href="?status=<?= $val ?>" class="tab <?= $filter===$val?'active':'' ?>"><?= $label ?></a>
+        <!-- Filter tabs -->
+        <div class="mr-tabs">
+          <?php foreach (['all'=>'All','confirmed'=>'Confirmed','pending'=>'Pending','cancelled'=>'Cancelled'] as $val => $label): ?>
+            <a href="?status=<?= $val ?>" class="mr-tab <?= $filter === $val ? 'mr-tab--active' : '' ?>">
+              <?= $label ?>
+              <?php if ($val === 'all'): ?>
+                <span class="mr-tab-count"><?= (int)$stats['total'] ?></span>
+              <?php elseif ($val === 'confirmed'): ?>
+                <span class="mr-tab-count"><?= (int)$stats['confirmed'] ?></span>
+              <?php elseif ($val === 'pending'): ?>
+                <span class="mr-tab-count"><?= (int)$stats['pending'] ?></span>
+              <?php elseif ($val === 'cancelled'): ?>
+                <span class="mr-tab-count"><?= (int)$stats['cancelled'] ?></span>
+              <?php endif; ?>
+            </a>
           <?php endforeach; ?>
         </div>
       </div>
 
+      <!-- Empty state -->
       <?php if (empty($regs)): ?>
-        <div class="card-body" style="text-align:center;padding:56px 24px">
-          <div style="font-size:2.5rem;margin-bottom:12px">📋</div>
-          <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px">No registrations yet</div>
-          <div style="font-size:0.85rem;color:var(--text-3);margin-bottom:20px">
-            <?= $filter === 'all' ? "You haven't signed up for any events." : "No {$filter} registrations found." ?>
+        <div style="text-align:center;padding:60px 24px">
+          <svg width="56" height="56" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               style="color:var(--text-3);margin-bottom:14px">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px">
+            No registrations<?= $filter !== 'all' ? " with status \"$filter\"" : '' ?> yet
+          </div>
+          <div style="font-size:0.84rem;color:var(--text-3);margin-bottom:20px">
+            <?= $filter === 'all' ? "You haven't signed up for any events." : "Try a different filter above." ?>
           </div>
           <a href="events.php" class="btn btn-primary">Browse Available Events →</a>
         </div>
+
       <?php else: ?>
-        <div class="reg-list">
+        <div class="mr-list">
           <?php foreach ($regs as $r):
-            $is_past     = strtotime($r['date_time']) < time();
-            $is_upcoming = !$is_past && $r['status'] !== 'cancelled';
-            $can_cancel  = !$is_past && $r['status'] !== 'cancelled';
-            $pct         = $r['max_slots'] > 0 ? min(100, round(($r['enrolled'] / $r['max_slots']) * 100)) : 0;
-            $bar_class   = $pct >= 90 ? 'red' : ($pct >= 60 ? 'gold' : 'blue');
-            $date_fmt    = date('D, M j, Y', strtotime($r['date_time']));
-            $time_fmt    = date('g:i A', strtotime($r['date_time']));
+            $is_past    = strtotime($r['date_time']) < time();
+            $can_cancel = !$is_past && $r['status'] !== 'cancelled';
+            $pct        = $r['max_slots'] > 0 ? min(100, round(($r['enrolled'] / $r['max_slots']) * 100)) : 0;
+            $bar_mod    = $pct >= 90 ? 'full' : ($pct >= 60 ? 'warn' : 'ok');
           ?>
-          <div class="reg-item <?= $is_past ? 'reg-past' : '' ?>">
+          <div class="mr-row <?= $is_past ? 'mr-row--past' : '' ?>">
 
-            <!-- Status stripe -->
-            <div class="reg-stripe reg-stripe-<?= $r['status'] ?>"></div>
+            <!-- Left colour stripe -->
+            <div class="mr-stripe mr-stripe--<?= $r['status'] ?>"></div>
 
-            <!-- Event info -->
-            <div class="reg-info">
-              <div class="reg-title"><?= htmlspecialchars($r['title']) ?></div>
-              <div class="reg-meta">
+            <!-- Event details -->
+            <div class="mr-info">
+              <div class="mr-title"><?= htmlspecialchars($r['title']) ?></div>
+
+              <div class="mr-meta">
                 <span>
                   <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  <?= $date_fmt ?>
+                  <?= date('D, M j, Y', strtotime($r['date_time'])) ?>
                 </span>
                 <span>
                   <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  <?= $time_fmt ?>
+                  <?= date('g:i A', strtotime($r['date_time'])) ?>
                 </span>
                 <span>
                   <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                   <?= htmlspecialchars($r['venue']) ?>
                 </span>
-                <span style="color:var(--text-3);font-size:0.75rem">
+                <span class="mr-meta-reg">
                   Registered <?= date('M j, Y', strtotime($r['registered_at'])) ?>
                 </span>
               </div>
 
-              <!-- Slot progress -->
-              <div class="reg-slots">
-                <span class="slot-text"><?= $r['enrolled'] ?>/<?= $r['max_slots'] ?> slots filled</span>
-                <div class="prog" style="flex:1;max-width:160px">
-                  <div class="prog-bar <?= $bar_class ?>" style="width:<?= $pct ?>%"></div>
+              <!-- Slot progress bar -->
+              <div class="mr-slots">
+                <span class="mr-slots-lbl"><?= $r['enrolled'] ?>/<?= $r['max_slots'] ?> slots</span>
+                <div class="prog" style="flex:1;max-width:140px">
+                  <div class="prog-bar <?= $bar_mod ?>" style="width:<?= $pct ?>%"></div>
                 </div>
-                <span class="slot-pct"><?= $pct ?>%</span>
+                <span class="mr-slots-pct"><?= $pct ?>%</span>
               </div>
             </div>
 
-            <!-- Status + actions -->
-            <div class="reg-actions">
+            <!-- Right: status badge + cancel button -->
+            <div class="mr-actions">
               <span class="badge badge-<?= $r['status'] ?>"><?= ucfirst($r['status']) ?></span>
               <?php if ($is_past): ?>
-                <span class="badge" style="background:rgba(92,100,120,0.15);color:var(--text-3);border:1px solid var(--border)">Past Event</span>
+                <span class="badge" style="background:var(--bg-hover);color:var(--text-3);border:1px solid var(--border)">Past</span>
               <?php endif; ?>
-
               <?php if ($can_cancel): ?>
-                <button class="btn btn-ghost btn-sm cancel-btn"
-                  data-reg-id="<?= $r['registration_id'] ?>"
-                  data-event="<?= htmlspecialchars($r['title']) ?>">
-                  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button class="btn btn-ghost btn-sm mr-cancel-btn"
+                        data-reg-id="<?= $r['registration_id'] ?>"
+                        data-event="<?= htmlspecialchars($r['title'], ENT_QUOTES) ?>">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   Cancel
                 </button>
               <?php endif; ?>
             </div>
+
           </div>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
 
-  </div><!-- /page-content -->
+  </div><!-- /page -->
 </div><!-- /main -->
 
 <!-- ── Cancel Confirm Modal ─────────────────────────────────── -->
 <div class="modal-overlay" id="cancelModal">
-  <div class="modal" style="width:400px">
+  <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Cancel Registration?</span>
       <button class="modal-close" onclick="closeModal('cancelModal')">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.87rem;color:var(--text-2);line-height:1.6">
+      <p style="font-size:0.87rem;color:var(--text-2);line-height:1.6;margin-bottom:14px">
         Are you sure you want to cancel your registration for
         <strong id="cancelEventName" style="color:var(--text)"></strong>?
         This will free up your slot for other students.
       </p>
-      <div class="alert alert-warning" style="margin-top:14px;margin-bottom:0;font-size:0.82rem">
+      <div class="mr-warning">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-        <div>This action cannot be undone. You may re-register if slots are still available.</div>
+        This action cannot be undone. You may re-register if slots are still available.
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('cancelModal')">Keep Registration</button>
-      <form method="POST" id="cancelForm">
+      <form method="POST" id="cancelForm" style="display:inline">
         <?= csrf_token_field() ?>
         <input type="hidden" name="action" value="cancel">
         <input type="hidden" name="reg_id" id="cancelRegId">
@@ -348,110 +384,112 @@ $regs = $regs->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <style>
-/* ── Registration list ──────────────────────────────────── */
-.reg-list { }
+/* ── Sidebar brand clock (matches admin panel) ─────────── */
+.sb-brand-top      { display:flex; align-items:center; gap:11px; }
+.sb-brand-text     { display:flex; flex-direction:column; }
+.sidebar-brand     { display:flex; flex-direction:column; padding:18px 18px 16px;
+                     border-bottom:1px solid var(--border); flex-shrink:0; }
+.sidebar-brand h1  { font-family:var(--ff-d); font-size:.93rem; font-weight:600;
+                     color:var(--text); line-height:1.25; }
+.sidebar-brand p   { font-size:.63rem; color:var(--text-3);
+                     letter-spacing:.09em; text-transform:uppercase; margin-top:1px; }
+.sb-clock          { margin-top:11px; padding-top:11px; border-top:1px solid var(--border); width:100%; }
+.sb-clock__time    { font-family:var(--ff-m,'JetBrains Mono',monospace); font-size:1.18rem;
+                     font-weight:500; color:var(--text); letter-spacing:.07em; line-height:1; }
+.sb-clock__date    { font-size:.61rem; color:var(--text-3);
+                     letter-spacing:.05em; margin-top:4px; text-transform:uppercase; }
 
-.reg-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  transition: background 0.15s ease;
-}
-.reg-item:last-child { border-bottom: none; }
-.reg-item:hover { background: var(--bg-hover); }
-.reg-item.reg-past { opacity: 0.65; }
+/* ── Filter tabs ───────────────────────────────────────── */
+.mr-tabs          { display:flex; gap:4px; }
+.mr-tab           { display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
+                    border-radius:6px; font-size:.78rem; font-weight:500;
+                    color:var(--text-3); text-decoration:none; border:1px solid transparent;
+                    transition:all .18s; white-space:nowrap; }
+.mr-tab:hover     { color:var(--text); background:var(--bg-hover); }
+.mr-tab--active   { background:rgba(74,122,181,.14); color:var(--blue-l);
+                    border-color:rgba(74,122,181,.3); }
+.mr-tab-count     { font-size:.68rem; font-weight:700; background:var(--bg-hover);
+                    padding:1px 5px; border-radius:10px; color:var(--text-3); }
+.mr-tab--active .mr-tab-count { background:rgba(74,122,181,.2); color:var(--blue-l); }
 
-.reg-stripe {
-  width: 3px;
-  align-self: stretch;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.reg-stripe-confirmed { background: var(--green); }
-.reg-stripe-pending   { background: var(--gold); }
-.reg-stripe-cancelled { background: var(--border); }
+/* ── Registration list rows ────────────────────────────── */
+.mr-list  { }
+.mr-row   { display:flex; align-items:center; gap:18px; padding:18px 22px;
+            border-bottom:1px solid var(--border); transition:background .15s; }
+.mr-row:last-child      { border-bottom:none; }
+.mr-row:hover           { background:var(--bg-hover); }
+.mr-row--past           { opacity:.6; }
 
-.reg-info { flex: 1; min-width: 0; }
+.mr-stripe              { width:3px; align-self:stretch; border-radius:3px; flex-shrink:0; }
+.mr-stripe--confirmed   { background:var(--green); }
+.mr-stripe--pending     { background:var(--gold); }
+.mr-stripe--cancelled   { background:var(--border); }
 
-.reg-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.mr-info    { flex:1; min-width:0; }
+.mr-title   { font-size:.94rem; font-weight:600; color:var(--text);
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+              margin-bottom:6px; }
 
-.reg-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.78rem;
-  color: var(--text-2);
-  margin-bottom: 10px;
-}
-.reg-meta span { display: flex; align-items: center; gap: 4px; }
+.mr-meta    { display:flex; flex-wrap:wrap; gap:10px; font-size:.77rem;
+              color:var(--text-2); margin-bottom:10px; }
+.mr-meta span           { display:flex; align-items:center; gap:4px; }
+.mr-meta-reg            { color:var(--text-3); font-size:.73rem; }
 
-.reg-slots {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: var(--text-3);
-}
-.slot-pct { font-family: var(--ff-m); font-size: 0.7rem; color: var(--text-3); min-width: 30px; }
+.mr-slots               { display:flex; align-items:center; gap:8px; font-size:.74rem; color:var(--text-3); }
+.mr-slots-lbl           { white-space:nowrap; }
+.mr-slots-pct           { font-family:var(--ff-m,'JetBrains Mono',monospace);
+                          font-size:.7rem; min-width:30px; text-align:right; }
 
-.reg-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
+.mr-actions             { display:flex; flex-direction:column; align-items:flex-end;
+                          gap:8px; flex-shrink:0; }
 
-/* ── alert-warning (reuse from global) ───────────────────── */
-.alert-warning {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 10px 14px; border-radius: 8px; font-size: 0.83rem;
-  line-height: 1.5; color: var(--gold-l);
-  background: rgba(201,168,76,0.08);
-  border: 1px solid rgba(201,168,76,0.25);
-}
+/* ── Warning box in modal ──────────────────────────────── */
+.mr-warning { display:flex; align-items:flex-start; gap:8px; padding:10px 14px;
+              border-radius:8px; font-size:.82rem; line-height:1.5;
+              color:var(--gold-l); background:rgba(201,168,76,.08);
+              border:1px solid rgba(201,168,76,.25); }
 
-/* ── Modal danger btn ─────────────────────────────────────── */
-.btn-danger {
-  background: rgba(196,92,92,0.15);
-  color: #d87c7c;
-  border: 1px solid rgba(196,92,92,0.3);
-}
-.btn-danger:hover { background: rgba(196,92,92,0.25); }
-
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0 !important; }
-  #menuBtn { display: flex !important; }
-  .reg-item { flex-wrap: wrap; }
-  .reg-actions { flex-direction: row; align-items: center; width: 100%; }
-  .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width:768px) {
+  .sidebar { transform:translateX(-100%); }
+  .sidebar.open { transform:translateX(0); }
+  .main { margin-left:0 !important; }
+  #menuBtn { display:flex !important; }
+  .mr-row { flex-wrap:wrap; }
+  .mr-actions { flex-direction:row; align-items:center; width:100%; justify-content:flex-end; }
+  .mr-tabs { flex-wrap:wrap; }
+  div[style*="grid-template-columns:repeat(4"] { grid-template-columns:repeat(2,1fr) !important; }
 }
 </style>
 
-
 <script src="assets/js/global.js"></script>
 <script>
-// ── Cancel modal wiring ───────────────────────────────────
-document.querySelectorAll('.cancel-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.getElementById('cancelRegId').value          = btn.dataset.regId;
+/* Cancel modal */
+document.querySelectorAll('.mr-cancel-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.getElementById('cancelRegId').value           = btn.dataset.regId;
     document.getElementById('cancelEventName').textContent = btn.dataset.event;
     openModal('cancelModal');
   });
 });
+
+/* Realtime clock */
+(function() {
+  var days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tick() {
+    var now = new Date();
+    var h   = String(now.getHours()).padStart(2,'0');
+    var m   = String(now.getMinutes()).padStart(2,'0');
+    var s   = String(now.getSeconds()).padStart(2,'0');
+    var tEl = document.getElementById('sbTime');
+    var dEl = document.getElementById('sbDate');
+    if (tEl) tEl.textContent = h + ':' + m + ':' + s;
+    if (dEl) dEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate() + ' ' + now.getFullYear();
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 </script>
 </body>
 </html>

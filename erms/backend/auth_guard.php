@@ -46,11 +46,10 @@ function session_check_and_redirect(string $login_url): void
         exit();
     }
 
-    // Refresh idle timer
     $_SESSION['last_activity'] = $now;
 }
 
-// ── Auth helpers ───────────────────────────────────────────
+
 function require_login(string $login_url = '../login.php'): void
 {
     if (!isset($_SESSION['user_id'])) {
