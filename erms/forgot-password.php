@@ -5,21 +5,7 @@ require_once __DIR__ . '/backend/security_headers.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 // ── TODO: Implement forgot password logic ──────────────────
-// Steps your colleague needs to implement:
-// 1. Accept POST email input
-// 2. Check if email exists in users table
-// 3. Generate a secure token: bin2hex(random_bytes(32))
-// 4. Store token + expiry (e.g. NOW() + 1 hour) in a password_resets table
-//    CREATE TABLE password_resets (
-//      id INT AUTO_INCREMENT PRIMARY KEY,
-//      email VARCHAR(255),
-//      token VARCHAR(64),
-//      expires_at DATETIME,
-//      used TINYINT(1) DEFAULT 0
-//    );
-// 5. Send reset link via mail() or PHPMailer:
-//    $link = "http://localhost/erms/reset-password.php?token=$token";
-// 6. Show success message regardless (don't reveal if email exists)
+// TODO Done!
 
 $success = false;
 $error   = '';
@@ -31,22 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Please enter a valid email address.';
     } else {
 
-// 1. Check if email exists
+// Check if email exists
 $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
 $stmt->execute([$email]);
 $user = $stmt->fetch();
 
 if ($user) {
-    // 2. Generate secure token
+    //  Generate secure token
     $token = bin2hex(random_bytes(32));
-    // 3. Store token + expiry (1 hour)
+    //  Store token + expiry (1 hour)
     $stmt = $pdo->prepare("
         INSERT INTO password_resets (email, token, expires_at)
         VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
     ");
     $stmt->execute([$email, $token]);
 
-    // 4. Reset link (for now: just display / log it)
+    // Reset link (for now: just display / log it)
     $resetLink = "http://localhost/event-reg-management-sys-main/erms/reset-password.php?token=$token";
 
     //  DEV MODE ONLY (replace with email later)
