@@ -77,6 +77,7 @@
   --bg-field: #f5f3ef;
   --bg-input-focus: #fffef9;
   --bg-field-focus: #fffef9;
+<<<<<<< HEAD
   --border: rgba(0, 0, 0, 0.09);
   --border-a: rgba(74, 122, 181, 0.25);
   --border-acc: rgba(74, 122, 181, 0.25);
@@ -92,6 +93,23 @@
   --brand-a: #110c00;
   --brand-left: #0d1420;
   --bg-rgb: 240, 237, 230;
+=======
+  --border:         rgba(0,0,0,0.09);
+  --border-a:       rgba(74,122,181,0.25);
+  --border-acc:     rgba(74,122,181,0.25);
+  --text:           #1a1d27;
+  --text-2:         #101421;
+  --text-3:         #7d859e;
+  --shadow:         0 4px 24px rgba(0,0,0,0.09);
+  --input-glow:     rgba(74,122,181,0.12);
+  --input-shadow:   0 0 0 3px rgba(74,122,181,0.12);
+  --input-glow-g:   rgba(201,168,76,0.12);
+  --nav-scrolled:   rgba(240,237,230,0.92);
+  --brand-s:        #0d1420;
+  --brand-a:        #110c00;
+  --brand-left:     #0d1420;
+  --bg-rgb:         240,237,230;
+>>>>>>> 618b50c91f7546823751c359eed8b48033ef3a92
 }
 
 /* ============================================================

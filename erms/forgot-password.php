@@ -5,7 +5,11 @@ require_once __DIR__ . '/backend/security_headers.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 // ── TODO: Implement forgot password logic ──────────────────
+<<<<<<< HEAD
 
+=======
+// TODO Done!
+>>>>>>> 618b50c91f7546823751c359eed8b48033ef3a92
 
 $success = false;
 $error   = '';

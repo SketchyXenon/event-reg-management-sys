@@ -14,24 +14,27 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 // 4. On POST: validate new password, hash it, update users table, mark token used
 //    UPDATE users SET password = ? WHERE email = ?
 //    UPDATE password_resets SET used = 1 WHERE token = ?
-
+// TASK COMPLETE :D
 $token   = trim($_GET['token'] ?? '');
-$valid   = false;  // TODO: set to true if token found and not expired
-$email   = '';     // TODO: set to email from password_resets row
+$valid   = false;
+$email   = '';
 $success = false;
 $error   = '';
 
-// TODO: Uncomment and implement this block:
-// if ($token) {
-//     $stmt = $pdo->prepare("SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() AND used = 0");
-//     $stmt->execute([$token]);
-//     $row = $stmt->fetch();
-//     if ($row) { $valid = true; $email = $row['email']; }
-// }
+$token = $_GET['token'] ?? '';
 
-// Placeholder so the form renders during development
-$valid = (bool) $token; // REMOVE THIS LINE once real logic is implemented
+if ($token) {
+    $stmt = $pdo->prepare("
+        SELECT email
+        FROM password_resets
+        WHERE token = ?
+          AND used = 0
+          AND expires_at > NOW()
+    ");
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
 
+<<<<<<< HEAD
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
   $password = $_POST['password']        ?? '';
   $confirm  = $_POST['confirm_password'] ?? '';
@@ -47,6 +50,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     // $pdo->prepare("UPDATE password_resets SET used = 1 WHERE token = ?")->execute([$token]);
     $success = true; // placeholder
   }
+=======
+    if ($row) {
+        $valid = true;
+        $email = $row['email'];
+    } else {
+        $error = 'Invalid or expired reset link.';
+    }
+} else {
+    $error = 'Missing reset token.';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['token'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $confirm = $_POST['confirm_password'] ?? '';
+
+    if (strlen($password) < 8) {
+        $error = 'Password must be at least 8 characters.';
+    } elseif ($password !== $confirm) {
+        $error = 'Passwords do not match.';
+    } else {
+        // 1. Validate token
+        $stmt = $pdo->prepare("
+            SELECT email FROM password_resets
+            WHERE token = ? AND used = 0 AND expires_at > NOW()
+        ");
+        $stmt->execute([$token]);
+        $reset = $stmt->fetch();
+
+        if (!$reset) {
+            $error = 'Invalid or expired reset token.';
+        } else {
+            // 2. Update user password
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
+            $stmt->execute([$hashed, $reset['email']]);
+
+            // 3. Mark token as used
+            $stmt = $pdo->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
+            $stmt->execute([$token]);
+
+            $success = true;
+        }
+    }
+>>>>>>> 618b50c91f7546823751c359eed8b48033ef3a92
 }
 ?>
 <!DOCTYPE html>
@@ -175,7 +224,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
 
         <?php endif; ?>
 
+<<<<<<< HEAD
       </div>
+=======
+        <form method="POST" action="reset-password.php?token=<?= urlencode($token) ?>" id="resetForm">
+          <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+
+          <div class="form-group">
+            <label class="form-label" for="password">New Password</label>
+            <div class="input-wrap">
+              <input type="password" name="password" id="password" class="form-control"
+                placeholder="Min. 8 characters" required autofocus>
+              <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              <button type="button" class="pw-toggle" id="pwToggle1">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="pw-strength"><div class="pw-strength-bar" id="strengthBar"></div></div>
+            <div class="input-hint" id="strengthLabel">Enter a password</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirm_password">Confirm New Password</label>
+            <div class="input-wrap">
+              <input type="password" name="confirm_password" id="confirm_password" class="form-control"
+                placeholder="Re-enter password" required>
+              <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              <button type="button" class="pw-toggle" id="pwToggle2">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="input-hint" id="confirmHint"></div>
+          </div>
+
+          <button type="submit" class="btn-submit student-btn" id="submitBtn">
+            Update Password
+          </button>
+
+        </form>
+
+      <?php endif; ?>
+
+>>>>>>> 618b50c91f7546823751c359eed8b48033ef3a92
     </div>
 
   </div>
