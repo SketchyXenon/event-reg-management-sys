@@ -22,27 +22,12 @@ $user = $user->fetch(PDO::FETCH_ASSOC);
 $success = '';
 $error   = '';
 
-// ── TODO: Handle profile update (POST) ────────────────────
-// Your colleague needs to implement two forms:
-//
-// FORM 1 — Update profile info (action=update_info):
-//   - Validate full_name (not empty)
-//   - Check email uniqueness (exclude current user)
-//   - UPDATE users SET full_name=?, email=? WHERE user_id=?
-//   - Update $_SESSION['full_name']
-//
-// FORM 2 — Change password (action=change_password):
-//   - Verify current_password matches hash in DB
-//   - Validate new_password strength (validate_password_strength())
-//   - Confirm new_password === confirm_password
-//   - UPDATE users SET password=? WHERE user_id=? using hash_password()
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
     $action = $_POST['action'] ?? '';
 
-    // ══ FORM 1 — Update Profile Info ══════════════════════════
+    //Update Profile Info 
     if ($action === 'update_info') {
 
         $full_name_input = trim($_POST['full_name'] ?? '');
@@ -59,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email_input, FILTER_VALIDATE_EMAIL)) {
             $error = 'Please enter a valid email address.';
         } else {
-
             $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
             $stmt->execute([$email_input, $user_id]);
 
@@ -80,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-    // ══ FORM 2 — Change Password ═══════════════════════════════
+    //  Change Password 
     } elseif ($action === 'change_password') {
 
         $current_password = $_POST['current_password'] ?? '';
@@ -105,6 +89,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([hash_password($new_password), $user_id]);
                 $success = 'Password changed successfully.';
             }
+        }
+
+    //Deactivate Account 
+    } elseif ($action === 'deactivate_account') {
+
+        $confirm = trim($_POST['confirm_deactivate'] ?? '');
+
+        if ($confirm !== 'DEACTIVATE') {
+            $error = 'Please type DEACTIVATE to confirm.';
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET is_active = 0 WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+
+            session_unset();
+            session_destroy();
+            header('Location: login.php?account=deactivated');
+            exit;
         }
     }
 }  // ← single closing brace for the POST block
@@ -350,17 +351,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div>
 
-    <!-- ── Danger Zone ──────────────────────────────────────── -->
-    <!-- TODO: Optional — implement account deactivation -->
-    <!--
+  <!-- ── Danger Zone ──────────────────────────────────────── -->
     <div class="card" style="padding:24px; margin-top:24px; border-color:rgba(196,92,92,0.3)">
       <h2 style="font-family:var(--ff-d);font-size:1rem;color:var(--red);margin-bottom:8px">Danger Zone</h2>
       <p style="color:var(--text-2);font-size:0.85rem;margin-bottom:16px">
         Deactivating your account will cancel all pending registrations. This cannot be undone.
       </p>
-      <button class="btn btn-danger">Deactivate Account</button>
+      <button class="btn btn-danger" onclick="openModal('deactivateModal')">Deactivate Account</button>
     </div>
-    -->
+
+    <!-- ── Deactivate Confirmation Modal ───────────────────── -->
+    <div class="modal-overlay" id="deactivateModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title" style="color:var(--red)">⚠ Deactivate Account</h2>
+          <button class="modal-close" onclick="closeModal('deactivateModal')">✕</button>
+        </div>
+        <form method="POST" action="profile.php">
+          <?= csrf_token_field() ?>
+          <input type="hidden" name="action" value="deactivate_account">
+          <div class="modal-body">
+            <p style="color:var(--text-2);font-size:0.9rem;margin-bottom:16px">
+              This will <strong>permanently deactivate</strong> your account and cancel all pending registrations.
+              You will be logged out immediately.
+            </p>
+            <div class="form-group">
+              <label class="form-label">Type <strong style="color:var(--red)">DEACTIVATE</strong> to confirm</label>
+              <input type="text" name="confirm_deactivate" class="form-control"
+                placeholder="DEACTIVATE" autocomplete="off" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('deactivateModal')">Cancel</button>
+            <button type="submit" class="btn btn-danger">Yes, Deactivate My Account</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
   </div>
 </main>
