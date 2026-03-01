@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$password)
         $field_errors['password'] = 'Password is required.';
     elseif (!validate_password_strength($password))
-        $field_errors['password'] = 'Must be 8+ characters with uppercase, lowercase, number & special character.';
+        $field_errors['password'] = 'Password must be at least 8 characters long.';
 
     if (!$confirm)
         $field_errors['confirm_password'] = 'Please confirm your password.';
@@ -233,7 +233,8 @@ function field_cls($name, $errors) {
           <div class="input-wrap">
             <input type="password" name="password" id="password"
               class="<?= field_cls('password', $field_errors) ?>"
-              placeholder="Create a strong password"
+              placeholder="At least 8 characters"
+              minlength="8"
               required autocomplete="new-password">
             <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>

@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign In — ERMS</title>
+  <title>Sign In - CTU ERMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="assets/css/global.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -158,10 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <aside class="auth-brand mode-<?= htmlspecialchars($login_mode) ?>" id="brandPanel">
     <div class="brand-top">
-      <div class="brand-crest">E</div>
+      <div class="brand-crest">CTU</div>
       <h2 class="brand-title" id="brandTitle">
         <?php if ($login_mode === 'admin'): ?>Administrator<br><em>Access Portal</em>
-        <?php else: ?>Welcome back to<br><em>ERMS</em><?php endif; ?>
+        <?php else: ?>Welcome back to<br><em>CTU ERMS</em><?php endif; ?>
       </h2>
       <p class="brand-desc">Your academic event hub. Sign in to view your registered events, discover new opportunities, and manage your campus schedule.</p>
       <ul class="admin-perks">
