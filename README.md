@@ -1,6 +1,6 @@
 # ERMS — Event Registration & Management System
 
-> A full-stack web application built for **Cebu Technological University** that enables administrators to create and manage campus events while allowing students to discover, register for, and track their event participation — all through a clean, role-aware interface.
+> A full-stack web application built for **Cebu Technological University Danao Campus** that enables administrators to create and manage campus events while allowing students to discover, register for, and track their event participation — all through a clean, role-aware interface.
 
 ---
 
@@ -373,12 +373,12 @@ The architecture is clean and modular enough that these features can be added in
 
 ## Credits
 
-**Built by:** John Ray Abenasa & Development Team
-**Institution:** Cebu Technological University
-**Course:** Web Systems & Technologies — Midterm Group Project
+**Built by:** SketchyXenon & Development Team (R.L., C.T., JC. L., GA. L., JJ. H.)
+**Institution:** CTU Danao Campus
+**Course:** Information Management - Midterm Group Project
 **Academic Year:** 2025–2026
 
-**Co-developed with:** Classmates and my Anon. co-pilot.
+**Co-developed with:** Secret??!!!
 
 ---
 
