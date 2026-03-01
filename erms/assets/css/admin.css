@@ -42,7 +42,7 @@ body {
 }
 
 /* ============================================================
-   SIDEBAR  — override global.css sidebar-brand direction
+   SIDEBAR  — admin sidebar brand uses .adm-brand (avoids global.css conflict)
    ============================================================ */
 body.has-sidebar .sidebar {
   width: var(--sw);
@@ -55,29 +55,26 @@ body.has-sidebar .sidebar {
   transition: transform .3s ease;
 }
 
-/* sidebar-brand: column layout — top row (crest + text) then clock below */
-body.has-sidebar .sidebar-brand {
+/* adm-brand: admin sidebar header — own class, no conflict with global.css */
+.adm-brand {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0;
   padding: 18px 18px 16px;
   border-bottom: 1px solid var(--bdr);
   flex-shrink: 0;
 }
-
-/* Top row: crest left, title+subtitle right */
-body.has-sidebar .sb-brand-top {
+.sb-brand-top {
   display: flex;
   align-items: center;
   gap: 11px;
 }
-
-body.has-sidebar .sb-brand-text {
+.sb-brand-text {
   display: flex;
   flex-direction: column;
 }
-
-body.has-sidebar .brand-crest {
+.adm-brand .brand-crest {
   width: 38px; height: 38px;
   background: linear-gradient(135deg, var(--ab), var(--ag));
   border-radius: var(--r2);
@@ -87,12 +84,11 @@ body.has-sidebar .brand-crest {
   box-shadow: 0 0 18px rgba(74,122,181,.35);
   flex-shrink: 0;
 }
-
-body.has-sidebar .sidebar-brand h1 {
+.adm-brand h1 {
   font-family: var(--fd); font-size: .93rem; font-weight: 600;
   color: var(--t1); line-height: 1.25;
 }
-body.has-sidebar .sidebar-brand p {
+.adm-brand p {
   font-size: .63rem; color: var(--t3);
   letter-spacing: .09em; text-transform: uppercase; margin-top: 1px;
 }
@@ -1146,7 +1142,7 @@ body.has-sidebar textarea.form-control { resize: vertical; min-height: 86px; }
 [data-theme="light"] .u-tab--active{background:rgba(74,122,181,.1);color:#4a7ab5;}
 [data-theme="light"] .u-user__name{color:var(--t1);}
 [data-theme="light"] .u-role-preview{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.08);}
-.c-stats--4{grid-template-columns:repeat(4,1fr);}
+.c-stats--4{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
 
 /* ── Sidebar realtime clock ─────────────────────────── */
 .sb-clock {

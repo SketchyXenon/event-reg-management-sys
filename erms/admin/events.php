@@ -170,7 +170,7 @@ $stat_full     = (int)$pdo->query("SELECT COUNT(*) FROM events e WHERE (SELECT C
       <?php endif; ?>
 
       <!-- ── Stat Cards ── -->
-      <div class="c-stats">
+      <div class="c-stats c-stats--4" style="grid-template-columns:repeat(4,1fr)">
         <div class="c-stat c-stat--gold">
           <div class="c-stat__label">Total Events</div>
           <div class="c-stat__value"><?= number_format($stat_total) ?></div>
@@ -193,6 +193,14 @@ $stat_full     = (int)$pdo->query("SELECT COUNT(*) FROM events e WHERE (SELECT C
           <div class="c-stat__sub">Scheduled ahead</div>
           <div class="c-stat__icon"><svg width="56" height="56" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+        </div>
+        <div class="c-stat c-stat--red">
+          <div class="c-stat__label">Full</div>
+          <div class="c-stat__value"><?= number_format($stat_full) ?></div>
+          <div class="c-stat__sub">No slots remaining</div>
+          <div class="c-stat__icon"><svg width="56" height="56" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg></div>
         </div>
       </div>
