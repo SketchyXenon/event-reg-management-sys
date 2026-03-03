@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../backend/auth_guard.php';
 require_once __DIR__ . '/../backend/db_connect.php';
+require_once __DIR__ . '/../backend/security_headers.php';
+require_once __DIR__ . '/../backend/csrf_helper.php';
 admin_only();
 
 $admin = current_user();
@@ -25,7 +27,7 @@ $top_cats = $pdo->query("SELECT ec.category_name, COUNT(r.registration_id) AS to
   <title>Dashboard — ERMS Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/global.css">
-  <link rel="stylesheet" href="assets/css/admin.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
   <style>
     .db-stats {
       display: grid;

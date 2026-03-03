@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../backend/security_headers.php';
 require_once __DIR__ . '/../backend/auth_guard.php';
 require_once __DIR__ . '/../backend/db_connect.php';
 require_once __DIR__ . '/../backend/csrf_helper.php';
@@ -108,22 +109,121 @@ $stat_full     = (int)$pdo->query("SELECT COUNT(*) FROM events e WHERE (SELECT C
   <title>Manage Events — ERMS Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/global.css">
-  <link rel="stylesheet" href="assets/css/admin.css">
-<style>
-/* rdd — theme-aware, respects dark/light toggle */
-.rdd{position:relative;display:inline-block;flex-shrink:0;}
-.rdd--wide{min-width:160px;}.rdd--full{width:100%;}
-.rdd__btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:7px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--bdr);color:var(--t2);font-size:.82rem;cursor:pointer;outline:none;white-space:nowrap;transition:border-color .18s,color .18s;font-family:inherit;}
-.rdd__btn:hover,.rdd--open .rdd__btn{border-color:var(--ab);color:var(--t1);}
-.rdd__menu{display:none;position:absolute;top:calc(100% + 5px);left:0;min-width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;box-shadow:var(--sh3);z-index:9000;overflow:hidden;}
-.rdd--open .rdd__menu{display:block;animation:rddIn .14s ease;}
-@keyframes rddIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.rdd__item{display:flex;align-items:center;gap:8px;padding:8px 13px;font-size:.82rem;color:var(--t2);cursor:pointer;white-space:nowrap;transition:background .12s,color .12s;font-family:inherit;}
-.rdd__item:hover{background:var(--bgh);color:var(--t1);}
-.rdd__item--active{color:var(--t1);background:rgba(74,122,181,.12);}
-.rdd__dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.rdd__dot--green{background:#4e9b72;}.rdd__dot--gold{background:#c9a84c;}.rdd__dot--red{background:#c45c5c;}
-</style>
+  <link rel="stylesheet" href="../assets/css/admin.css">
+  <style>
+    /* rdd — theme-aware, respects dark/light toggle */
+    .rdd {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .rdd--wide {
+      min-width: 160px;
+    }
+
+    .rdd--full {
+      width: 100%;
+    }
+
+    .rdd__btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 11px;
+      border-radius: 8px;
+      background: var(--bg2);
+      border: 1px solid var(--bdr);
+      color: var(--t2);
+      font-size: .82rem;
+      cursor: pointer;
+      outline: none;
+      white-space: nowrap;
+      transition: border-color .18s, color .18s;
+      font-family: inherit;
+    }
+
+    .rdd__btn:hover,
+    .rdd--open .rdd__btn {
+      border-color: var(--ab);
+      color: var(--t1);
+    }
+
+    .rdd__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      min-width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--bdr);
+      border-radius: 8px;
+      box-shadow: var(--sh3);
+      z-index: 9000;
+      overflow: hidden;
+    }
+
+    .rdd--open .rdd__menu {
+      display: block;
+      animation: rddIn .14s ease;
+    }
+
+    @keyframes rddIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .rdd__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 13px;
+      font-size: .82rem;
+      color: var(--t2);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .12s, color .12s;
+      font-family: inherit;
+    }
+
+    .rdd__item:hover {
+      background: var(--bgh);
+      color: var(--t1);
+    }
+
+    .rdd__item--active {
+      color: var(--t1);
+      background: rgba(74, 122, 181, .12);
+    }
+
+    .rdd__dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .rdd__dot--green {
+      background: #4e9b72;
+    }
+
+    .rdd__dot--gold {
+      background: #c9a84c;
+    }
+
+    .rdd__dot--red {
+      background: #c45c5c;
+    }
+  </style>
 </head>
 
 <body class="has-sidebar">
@@ -149,6 +249,77 @@ $stat_full     = (int)$pdo->query("SELECT COUNT(*) FROM events e WHERE (SELECT C
       </svg>
       New Event
     </button>
+    <!-- Export dropdown -->
+    <div style="position:relative;display:inline-block;margin-right:8px;" id="exportDropWrap">
+      <button id="exportDropBtn" onclick="toggleExportDrop()"
+        style="display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--bdr);border-radius:7px;background:var(--bg3);color:var(--t1);font-size:.8rem;font-weight:600;cursor:pointer;">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export
+        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="opacity:.6">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div id="exportDrop" style="display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:220px;background:var(--bg2,#141824);border:1px solid var(--bdr);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.35);z-index:999;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid var(--bdr);">
+          <div style="font-size:.7rem;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Scope</div>
+          <div style="display:flex;gap:10px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--t2);cursor:pointer;"><input type="radio" name="exportScope" value="filtered" checked style="accent-color:#4a7ab5;"> Current filters</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--t2);cursor:pointer;"><input type="radio" name="exportScope" value="all" style="accent-color:#4a7ab5;"> All records</label>
+          </div>
+        </div>
+        <div style="padding:8px 6px;">
+          <div style="font-size:.7rem;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;padding:0 8px;margin-bottom:4px;">Format</div>
+          <button onclick="doExport('events','csv')" class="exp-item"><span>&#128196;</span> CSV <span style="font-size:.7rem;color:var(--t3);">(.csv)</span></button>
+          <button onclick="doExport('events','excel')" class="exp-item"><span>&#128202;</span> Excel <span style="font-size:.7rem;color:var(--t3);">(.xls)</span></button>
+          <button onclick="doExport('events','pdf')" class="exp-item"><span>&#128424;</span> PDF <span style="font-size:.7rem;color:var(--t3);">(print / save)</span></button>
+        </div>
+      </div>
+    </div>
+    <style>
+      .exp-item {
+        width: 100%;
+        text-align: left;
+        padding: 8px 14px;
+        background: none;
+        border: none;
+        color: var(--t1, #e6e3db);
+        font-size: .82rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border-radius: 6px;
+        transition: background .15s;
+      }
+
+      .exp-item:hover {
+        background: var(--bgh, rgba(255, 255, 255, .06));
+      }
+    </style>
+    <script>
+      function toggleExportDrop() {
+        var d = document.getElementById('exportDrop');
+        d.style.display = d.style.display === 'none' ? 'block' : 'none';
+      }
+      document.addEventListener('click', function(e) {
+        if (!document.getElementById('exportDropWrap').contains(e.target))
+          document.getElementById('exportDrop').style.display = 'none';
+      });
+
+      function doExport(type, format) {
+        var scope = document.querySelector('input[name="exportScope"]:checked').value;
+        var base = "q=" + encodeURIComponent(document.querySelector('[name=q]')?.value || '') + "&status=" + encodeURIComponent(document.querySelector('[name=status]')?.value || 'all') + "&category_id=" + encodeURIComponent(document.querySelector('[name=category_id]')?.value || '0');
+        var url = 'export.php?type=' + type + '&format=' + format + '&scope=' + scope + '&' + base;
+        if (format === 'pdf') {
+          window.open(url, '_blank');
+        } else {
+          window.location.href = url;
+        }
+        document.getElementById('exportDrop').style.display = 'none';
+      }
+    </script>
     <button class="theme-toggle-btn" id="themeToggle"><span id="themeIcon">☀️</span></button>
   </div>
 

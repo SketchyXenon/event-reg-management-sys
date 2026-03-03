@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script src="../assets/js/global.js"></script>
 <script>
-// ── Password strength (local — ensures it works regardless of global.js cache) ──
+
 (function () {
   var pw    = document.getElementById('password');
   var fill  = document.getElementById('strengthBar');
