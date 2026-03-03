@@ -3,6 +3,7 @@ require_once __DIR__ . '/backend/auth_guard.php';
 require_once __DIR__ . '/backend/db_connect.php';
 require_once __DIR__ . '/backend/csrf_helper.php';
 require_once __DIR__ . '/backend/password_helper.php';
+require_once __DIR__ . '/backend/security_headers.php';
 
 require_login('login.php');
 if ($_SESSION['role'] === 'admin') {

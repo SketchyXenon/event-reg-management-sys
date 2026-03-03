@@ -3,6 +3,7 @@ error_log("TEST: forgot-password.php loaded at " . date('Y-m-d H:i:s'));
 require_once __DIR__ . '/backend/db_connect.php';
 require_once __DIR__ . '/backend/security_headers.php';
 require_once __DIR__ . '/backend/password_helper.php';
+require_once __DIR__ . '/backend/csrf_helper.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
